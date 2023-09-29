@@ -2,7 +2,7 @@
 #
 *                   @equinix/governor-devrel-engineering
 /cmd/migration-tool @equinix/governor-devrel-engineering
-*metal*             @tomk @equinix/governor-devrel-engineering
+*metal*             @t0mk @equinix/governor-devrel-engineering
 *fabric*            @equinix/governor-digin-fabric
 *ecx*               @equinix/governor-digin-fabric
 *connection_e2e*    @equinix/governor-digin-fabric
