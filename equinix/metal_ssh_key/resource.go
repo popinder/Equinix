@@ -5,7 +5,7 @@ import (
 
 	"context"
 
-	"github.com/equinix/terraform-provider-equinix/equinix/helper"
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -15,7 +15,6 @@ import (
 )
 
 type ResourceModel struct {
-	ID          types.String `tfsdk:"id,omitempty"`
 	Name        types.String `tfsdk:"name,omitempty"`
 	PublicKey   types.String `tfsdk:"public_key,omitempty"`
 	ProjectID   types.String `tfsdk:"project_id,omitempty"`
@@ -25,7 +24,6 @@ type ResourceModel struct {
 }
 
 func (rm *ResourceModel) parse(key *packngo.SSHKey) {
-	rm.ID = types.StringValue(key.ID)
 	rm.Name = types.StringValue(key.Label)
 	rm.PublicKey = types.StringValue(key.Key)
 	rm.ProjectID = types.StringValue(path.Base(key.Owner.Href))
@@ -36,11 +34,9 @@ func (rm *ResourceModel) parse(key *packngo.SSHKey) {
 
 func NewResource() resource.Resource {
 	return &Resource{
-		BaseResource: helper.NewBaseResource(
-			helper.BaseResourceConfig{
-				Name: "equinix_metal_ssh_key",
-				// do we have other than str id types?
-				IDType: types.StringType,
+		BaseResource: internal.NewBaseResource(
+			internal.BaseResourceConfig{
+				Name:   "equinix_metal_ssh_key",
 				Schema: &frameworkResourceSchema,
 			},
 		),
@@ -48,7 +44,7 @@ func NewResource() resource.Resource {
 }
 
 type Resource struct {
-	helper.BaseResource
+	internal.BaseResource
 }
 
 func (r *Resource) Create(
@@ -56,6 +52,26 @@ func (r *Resource) Create(
 	req resource.CreateRequest,
 	resp *resource.CreateResponse,
 ) {
+	client := meta.(*Config).metal
+
+	createRequest := &packngo.SSHKeyCreateRequest{
+		Label: d.Get("name").(string),
+		Key:   d.Get("public_key").(string),
+	}
+
+	projectID, isProjectKey := d.GetOk("project_id")
+	if isProjectKey {
+		createRequest.ProjectID = projectID.(string)
+	}
+
+	key, _, err := client.SSHKeys.Create(createRequest)
+	if err != nil {
+		return friendlyError(err)
+	}
+
+	d.SetId(key.ID)
+
+	return resourceMetalSSHKeyRead(d, meta)
 }
 
 func (r *Resource) Read(

@@ -3,15 +3,15 @@ package metal_ssh_key
 import (
 	"context"
 
-	"github.com/equinix/terraform-provider-equinix/equinix/helper"
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 )
 
 func NewDataSource() datasource.DataSource {
 	return &DataSource{
-		BaseDataSource: helper.NewBaseDataSource(
-			helper.BaseDataSourceConfig{
+		BaseDataSource: internal.NewBaseDataSource(
+			internal.BaseDataSourceConfig{
 				Name: "equinix_metal_ssh_key",
 				// do we have other than str id types?
 				Schema: &frameworkDataSourceSchema,
@@ -21,7 +21,7 @@ func NewDataSource() datasource.DataSource {
 }
 
 type DataSource struct {
-	helper.BaseDataSource
+	internal.BaseDataSource
 }
 
 func (r *DataSource) Read(
