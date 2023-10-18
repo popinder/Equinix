@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"log"
 
@@ -65,8 +66,8 @@ func resourceMetalPortVlanAttachment() *schema.Resource {
 }
 
 func resourceMetalPortVlanAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 	deviceID := d.Get("device_id").(string)
 	pName := d.Get("port_name").(string)
 	vlanVNID := d.Get("vlan_vnid").(int)
@@ -158,17 +159,17 @@ func resourceMetalPortVlanAttachmentCreate(d *schema.ResourceData, meta interfac
 }
 
 func resourceMetalPortVlanAttachmentRead(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 	deviceID := d.Get("device_id").(string)
 	pName := d.Get("port_name").(string)
 	vlanVNID := d.Get("vlan_vnid").(int)
 
 	dev, _, err := client.Devices.Get(deviceID, &packngo.GetOptions{Includes: []string{"virtual_networks,project,native_virtual_network"}})
 	if err != nil {
-		err = friendlyError(err)
+		err = internal.FriendlyError(err)
 
-		if isNotFound(err) {
+		if internal.IsNotFound(err) {
 			log.Printf("[WARN] Device (%s) for Port Vlan Attachment not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
@@ -212,8 +213,8 @@ func resourceMetalPortVlanAttachmentRead(d *schema.ResourceData, meta interface{
 }
 
 func resourceMetalPortVlanAttachmentUpdate(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 	if d.HasChange("native") {
 		native := d.Get("native").(bool)
 		portID := d.Get("port_id").(string)
@@ -235,14 +236,14 @@ func resourceMetalPortVlanAttachmentUpdate(d *schema.ResourceData, meta interfac
 }
 
 func resourceMetalPortVlanAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 	pID := d.Get("port_id").(string)
 	vlanID := d.Get("vlan_id").(string)
 	native := d.Get("native").(bool)
 	if native {
 		_, resp, err := client.DevicePorts.UnassignNative(pID)
-		if ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err) != nil {
+		if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err) != nil {
 			return err
 		}
 	}
@@ -251,7 +252,7 @@ func resourceMetalPortVlanAttachmentDelete(d *schema.ResourceData, meta interfac
 	metalMutexKV.Lock(lockId)
 	defer metalMutexKV.Unlock(lockId)
 	portPtr, resp, err := client.DevicePorts.Unassign(par)
-	if ignoreResponseErrors(httpForbidden, httpNotFound, isNotAssigned)(resp, err) != nil {
+	if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound, internal.IsNotAssigned)(resp, err) != nil {
 		return err
 	}
 	forceBond := d.Get("force_bond").(bool)
@@ -260,11 +261,11 @@ func resourceMetalPortVlanAttachmentDelete(d *schema.ResourceData, meta interfac
 		portName := d.Get("port_name").(string)
 		port, err := client.DevicePorts.GetPortByName(deviceID, portName)
 		if err != nil {
-			return friendlyError(err)
+			return internal.FriendlyError(err)
 		}
 		_, _, err = client.DevicePorts.Bond(port, false)
 		if err != nil {
-			return friendlyError(err)
+			return internal.FriendlyError(err)
 		}
 	}
 	return nil

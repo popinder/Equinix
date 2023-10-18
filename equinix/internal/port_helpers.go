@@ -1,4 +1,4 @@
-package equinix
+package internal
 
 import (
 	"context"
@@ -18,9 +18,14 @@ type ClientPortResource struct {
 	Resource *schema.ResourceData
 }
 
-func getClientPortResource(d *schema.ResourceData, meta interface{}) (*ClientPortResource, *packngo.Response, error) {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+var (
+	L2Types = []string{"layer2-individual", "layer2-bonded"}
+	L3Types = []string{"layer3", "hybrid", "hybrid-bonded"}
+)
+
+func GetClientPortResource(d *schema.ResourceData, meta interface{}) (*ClientPortResource, *packngo.Response, error) {
+	meta.(*Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*Config).Metal
 
 	port_id := d.Get("port_id").(string)
 
@@ -41,7 +46,7 @@ func getClientPortResource(d *schema.ResourceData, meta interface{}) (*ClientPor
 	return cpr, resp, nil
 }
 
-func getPortByResourceData(d *schema.ResourceData, client *packngo.Client) (*packngo.Port, error) {
+func GetPortByResourceData(d *schema.ResourceData, client *packngo.Client) (*packngo.Port, error) {
 	portId, portIdOk := d.GetOk("port_id")
 	resourceId := d.Id()
 
@@ -117,7 +122,7 @@ func specifiedVlanIds(d *schema.ResourceData) []string {
 	// either vlan_ids or vxlan_ids should be set, TF should ensure that
 	vlanIdsRaw, vlanIdsOk := d.GetOk("vlan_ids")
 	if vlanIdsOk {
-		return convertStringArr(vlanIdsRaw.(*schema.Set).List())
+		return ConvertStringArr(vlanIdsRaw.(*schema.Set).List())
 	}
 
 	vxlanIdsRaw, vxlanIdsOk := d.GetOk("vxlan_ids")
@@ -127,18 +132,18 @@ func specifiedVlanIds(d *schema.ResourceData) []string {
 	return []string{}
 }
 
-func batchVlans(ctx context.Context, start time.Time, removeOnly bool) func(*ClientPortResource) error {
+func BatchVlans(ctx context.Context, start time.Time, removeOnly bool) func(*ClientPortResource) error {
 	return func(cpr *ClientPortResource) error {
 		var vlansToAssign []string
 		var currentNative string
-		vlansToRemove := difference(
+		vlansToRemove := Difference(
 			attachedVlanIds(cpr.Port),
 			specifiedVlanIds(cpr.Resource),
 		)
 		if !removeOnly {
 			currentNative = getCurrentNative(cpr.Port)
 
-			vlansToAssign = difference(
+			vlansToAssign = Difference(
 				specifiedVlanIds(cpr.Resource),
 				attachedVlanIds(cpr.Port),
 			)
@@ -208,7 +213,7 @@ func createAndWaitForBatch(ctx context.Context, start time.Time, cpr *ClientPort
 	return nil
 }
 
-func updateNativeVlan(cpr *ClientPortResource) error {
+func UpdateNativeVlan(cpr *ClientPortResource) error {
 	currentNative := getCurrentNative(cpr.Port)
 	specifiedNative := getSpecifiedNative(cpr.Resource)
 
@@ -259,17 +264,17 @@ func processBondAction(cpr *ClientPortResource, actionIsBond bool) error {
 	return nil
 }
 
-func makeBond(cpr *ClientPortResource) error {
+func MakeBond(cpr *ClientPortResource) error {
 	return processBondAction(cpr, true)
 }
 
-func makeDisbond(cpr *ClientPortResource) error {
+func MakeDisbond(cpr *ClientPortResource) error {
 	return processBondAction(cpr, false)
 }
 
-func convertToL2(cpr *ClientPortResource) error {
+func ConvertToL2(cpr *ClientPortResource) error {
 	l2, l2Ok := cpr.Resource.GetOkExists("layer2")
-	isLayer2 := contains(l2Types, cpr.Port.NetworkType)
+	isLayer2 := Contains(L2Types, cpr.Port.NetworkType)
 
 	if l2Ok && l2.(bool) && !isLayer2 {
 		port, _, err := cpr.Client.Ports.ConvertToLayerTwo(cpr.Port.ID)
@@ -281,9 +286,9 @@ func convertToL2(cpr *ClientPortResource) error {
 	return nil
 }
 
-func convertToL3(cpr *ClientPortResource) error {
+func ConvertToL3(cpr *ClientPortResource) error {
 	l2, l2Ok := cpr.Resource.GetOkExists("layer2")
-	isLayer2 := contains(l2Types, cpr.Port.NetworkType)
+	isLayer2 := Contains(L2Types, cpr.Port.NetworkType)
 
 	if l2Ok && !l2.(bool) && isLayer2 {
 		ips := []packngo.AddressRequest{
@@ -300,7 +305,7 @@ func convertToL3(cpr *ClientPortResource) error {
 	return nil
 }
 
-func portSanityChecks(cpr *ClientPortResource) error {
+func PortSanityChecks(cpr *ClientPortResource) error {
 	isBondPort := cpr.Port.Type == "NetworkBondPort"
 
 	// Constraint: Only bond ports have layer2 mode
@@ -325,7 +330,7 @@ func portSanityChecks(cpr *ClientPortResource) error {
 	if nativeVlanOk {
 		nativeVlan := nativeVlanRaw.(string)
 		vlans := specifiedVlanIds(cpr.Resource)
-		if !contains(vlans, nativeVlan) {
+		if !Contains(vlans, nativeVlan) {
 			return fmt.Errorf("the native VLAN to be set is not (being) assigned to the port")
 		}
 		if len(vlans) < 2 {
@@ -336,7 +341,7 @@ func portSanityChecks(cpr *ClientPortResource) error {
 	return nil
 }
 
-func portProperlyDestroyed(port *packngo.Port) error {
+func PortProperlyDestroyed(port *packngo.Port) error {
 	var errs []string
 	if !port.Data.Bonded {
 		errs = append(errs, fmt.Sprintf("port %s wasn't bonded after equinix_metal_port destroy;", port.ID))

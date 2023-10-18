@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/packethost/packngo"
@@ -56,21 +57,21 @@ func resourceMetalVRF() *schema.Resource {
 }
 
 func resourceMetalVRFCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	createRequest := &packngo.VRFCreateRequest{
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
 		Metro:       d.Get("metro").(string),
 		LocalASN:    d.Get("local_asn").(int),
-		IPRanges:    expandSetToStringList(d.Get("ip_ranges").(*schema.Set)),
+		IPRanges:    internal.ExpandSetToStringList(d.Get("ip_ranges").(*schema.Set)),
 	}
 
 	projectId := d.Get("project_id").(string)
 	vrf, _, err := client.VRFs.Create(projectId, createRequest)
 	if err != nil {
-		return friendlyError(err)
+		return internal.FriendlyError(err)
 	}
 
 	d.SetId(vrf.ID)
@@ -79,8 +80,8 @@ func resourceMetalVRFCreate(ctx context.Context, d *schema.ResourceData, meta in
 }
 
 func resourceMetalVRFUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	sPtr := func(s string) *string { return &s }
 	iPtr := func(i int) *int { return &i }
@@ -96,27 +97,27 @@ func resourceMetalVRFUpdate(ctx context.Context, d *schema.ResourceData, meta in
 		updateRequest.LocalASN = iPtr(d.Get("local_asn").(int))
 	}
 	if d.HasChange("ip_ranges") {
-		ipRanges := expandSetToStringList(d.Get("ip_ranges").(*schema.Set))
+		ipRanges := internal.ExpandSetToStringList(d.Get("ip_ranges").(*schema.Set))
 		updateRequest.IPRanges = &ipRanges
 	}
 
 	_, _, err := client.VRFs.Update(d.Id(), updateRequest)
 	if err != nil {
-		return friendlyError(err)
+		return internal.FriendlyError(err)
 	}
 
 	return resourceMetalVRFRead(ctx, d, meta)
 }
 
 func resourceMetalVRFRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	getOpts := &packngo.GetOptions{Includes: []string{"project", "metro"}}
 
 	vrf, _, err := client.VRFs.Get(d.Id(), getOpts)
 	if err != nil {
-		if isNotFound(err) || isForbidden(err) {
+		if internal.IsNotFound(err) || internal.IsForbidden(err) {
 			log.Printf("[WARN] VRF (%s) not accessible, removing from state", d.Id())
 			d.SetId("")
 
@@ -137,13 +138,13 @@ func resourceMetalVRFRead(ctx context.Context, d *schema.ResourceData, meta inte
 }
 
 func resourceMetalVRFDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	resp, err := client.VRFs.Delete(d.Id())
-	if ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err) == nil {
+	if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err) == nil {
 		d.SetId("")
 	}
 
-	return friendlyError(err)
+	return internal.FriendlyError(err)
 }

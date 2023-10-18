@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"testing"
 
@@ -62,7 +63,7 @@ func testAccECXL2ServiceProfileExists(resourceName string, profile *ecx.L2Servic
 		if !ok {
 			return fmt.Errorf("resource not found: %s", resourceName)
 		}
-		client := testAccProvider.Meta().(*Config).ecx
+		client := testAccProvider.Meta().(*internal.Config).Ecx
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource has no ID attribute set")
 		}

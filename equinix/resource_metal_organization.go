@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -100,8 +101,8 @@ func createMetalOrganizationAddressResourceSchema() map[string]*schema.Schema {
 }
 
 func resourceMetalOrganizationCreate(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	createRequest := &packngo.OrganizationCreateRequest{
 		Name:    d.Get("name").(string),
@@ -126,7 +127,7 @@ func resourceMetalOrganizationCreate(d *schema.ResourceData, meta interface{}) e
 
 	org, _, err := client.Organizations.Create(createRequest)
 	if err != nil {
-		return friendlyError(err)
+		return internal.FriendlyError(err)
 	}
 
 	d.SetId(org.ID)
@@ -135,15 +136,15 @@ func resourceMetalOrganizationCreate(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceMetalOrganizationRead(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	key, _, err := client.Organizations.Get(d.Id(), &packngo.GetOptions{Includes: []string{"address"}})
 	if err != nil {
-		err = friendlyError(err)
+		err = internal.FriendlyError(err)
 
 		// If the project somehow already destroyed, mark as succesfully gone.
-		if isNotFound(err) {
+		if internal.IsNotFound(err) {
 			d.SetId("")
 
 			return nil
@@ -166,8 +167,8 @@ func resourceMetalOrganizationRead(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceMetalOrganizationUpdate(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	changes := getResourceDataChangedKeys([]string{"name", "description", "website", "twitter", "logo", "address"}, d)
 	updateRequest := &packngo.OrganizationUpdateRequest{}
@@ -196,19 +197,19 @@ func resourceMetalOrganizationUpdate(d *schema.ResourceData, meta interface{}) e
 
 	_, _, err := client.Organizations.Update(d.Id(), updateRequest)
 	if err != nil {
-		return friendlyError(err)
+		return internal.FriendlyError(err)
 	}
 
 	return resourceMetalOrganizationRead(d, meta)
 }
 
 func resourceMetalOrganizationDelete(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	resp, err := client.Organizations.Delete(d.Id())
-	if ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err) != nil {
-		return friendlyError(err)
+	if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err) != nil {
+		return internal.FriendlyError(err)
 	}
 
 	d.SetId("")

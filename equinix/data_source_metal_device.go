@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -208,7 +209,7 @@ func dataSourceMetalDevice() *schema.Resource {
 }
 
 func dataSourceMetalDeviceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config).metalgo
+	client := meta.(*internal.Config).Metalgo
 
 	hostnameRaw, hostnameOK := d.GetOk("hostname")
 	projectIdRaw, projectIdOK := d.GetOk("project_id")
@@ -276,7 +277,7 @@ func dataSourceMetalDeviceRead(ctx context.Context, d *schema.ResourceData, meta
 	if device.HardwareReservation != nil {
 		d.Set("hardware_reservation_id", device.HardwareReservation.GetId())
 	}
-	networkType, err := getNetworkType(device)
+	networkType, err := internal.GetNetworkType(device)
 	if err != nil {
 		return fmt.Errorf("[ERR] Error computing network type for device (%s): %s", d.Id(), err)
 	}
@@ -290,14 +291,14 @@ func dataSourceMetalDeviceRead(ctx context.Context, d *schema.ResourceData, meta
 		keyIDs = append(keyIDs, path.Base(k.Href))
 	}
 	d.Set("ssh_key_ids", keyIDs)
-	networkInfo := getNetworkInfo(device.IpAddresses)
+	networkInfo := internal.GetNetworkInfo(device.IpAddresses)
 
 	sort.SliceStable(networkInfo.Networks, func(i, j int) bool {
 		famI := networkInfo.Networks[i]["family"].(int32)
 		famJ := networkInfo.Networks[j]["family"].(int32)
 		pubI := networkInfo.Networks[i]["public"].(bool)
 		pubJ := networkInfo.Networks[j]["public"].(bool)
-		return getNetworkRank(int(famI), pubI) < getNetworkRank(int(famJ), pubJ)
+		return internal.GetNetworkRank(int(famI), pubI) < internal.GetNetworkRank(int(famJ), pubJ)
 	})
 
 	d.Set("network", networkInfo.Networks)
@@ -305,7 +306,7 @@ func dataSourceMetalDeviceRead(ctx context.Context, d *schema.ResourceData, meta
 	d.Set("access_private_ipv4", networkInfo.PrivateIPv4)
 	d.Set("access_public_ipv6", networkInfo.PublicIPv6)
 
-	ports := getPorts(device.NetworkPorts)
+	ports := internal.GetPorts(device.NetworkPorts)
 	d.Set("ports", ports)
 
 	d.SetId(device.GetId())

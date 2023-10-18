@@ -1,4 +1,4 @@
-package equinix
+package internal
 
 import (
 	"fmt"
@@ -12,9 +12,9 @@ import (
 	"github.com/packethost/packngo"
 )
 
-// friendlyError improves error messages when the API error is blank or in an
+// FriendlyError improves error messages when the API error is blank or in an
 // alternate format (as is the case with invalid token or loadbalancer errors)
-func friendlyError(err error) error {
+func FriendlyError(err error) error {
 	if e, ok := err.(*packngo.ErrorResponse); ok {
 		resp := e.Response
 		errors := Errors(e.Errors)
@@ -28,7 +28,7 @@ func friendlyError(err error) error {
 	return err
 }
 
-func friendlyErrorForMetalGo(err error, resp *http.Response) error {
+func FriendlyErrorForMetalGo(err error, resp *http.Response) error {
 	errors := Errors([]string{err.Error()})
 	return convertToFriendlyError(errors, resp)
 }
@@ -51,7 +51,7 @@ func convertToFriendlyError(errors Errors, resp *http.Response) error {
 	return er
 }
 
-func isForbidden(err error) bool {
+func IsForbidden(err error) bool {
 	r, ok := err.(*packngo.ErrorResponse)
 	if ok && r.Response != nil {
 		return r.Response.StatusCode == http.StatusForbidden
@@ -62,7 +62,7 @@ func isForbidden(err error) bool {
 	return false
 }
 
-func isNotFound(err error) bool {
+func IsNotFound(err error) bool {
 	if r, ok := err.(*ErrorResponse); ok {
 		return r.StatusCode == http.StatusNotFound && r.IsAPIError
 	}
@@ -124,8 +124,8 @@ func setMap(d *schema.ResourceData, m map[string]interface{}) error {
 
 type setFn = func(d *schema.ResourceData, key string) error
 
-// isNotAssigned matches errors reported from unassigned virtual networks
-func isNotAssigned(resp *http.Response, err error) bool {
+// IsNotAssigned matches errors reported from unassigned virtual networks
+func IsNotAssigned(resp *http.Response, err error) bool {
 	if resp.StatusCode != http.StatusUnprocessableEntity {
 		return false
 	}
@@ -139,34 +139,34 @@ func isNotAssigned(resp *http.Response, err error) bool {
 	return false
 }
 
-func httpForbidden(resp *http.Response, err error) bool {
+func HttpForbidden(resp *http.Response, err error) bool {
 	if resp != nil && (resp.StatusCode != http.StatusForbidden) {
 		return false
 	}
 
 	switch err := err.(type) {
 	case *ErrorResponse, *packngo.ErrorResponse:
-		return isForbidden(err)
+		return IsForbidden(err)
 	}
 
 	return false
 }
 
-func httpNotFound(resp *http.Response, err error) bool {
+func HttpNotFound(resp *http.Response, err error) bool {
 	if resp != nil && (resp.StatusCode != http.StatusNotFound) {
 		return false
 	}
 
 	switch err := err.(type) {
 	case *ErrorResponse, *packngo.ErrorResponse:
-		return isNotFound(err)
+		return IsNotFound(err)
 	}
 	return false
 }
 
-// ignoreResponseErrors ignores http response errors when matched by one of the
+// IgnoreResponseErrors ignores http response errors when matched by one of the
 // provided checks
-func ignoreResponseErrors(ignore ...func(resp *http.Response, err error) bool) func(resp *packngo.Response, err error) error {
+func IgnoreResponseErrors(ignore ...func(resp *http.Response, err error) bool) func(resp *packngo.Response, err error) error {
 	return func(resp *packngo.Response, err error) error {
 		var r *http.Response
 		if resp != nil && resp.Response != nil {

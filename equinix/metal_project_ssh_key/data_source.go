@@ -1,16 +1,18 @@
-package equinix
+package metal_project_ssh_key
 
 import (
 	"fmt"
 	"path"
 	"strings"
 
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/packethost/packngo"
 )
 
-func dataSourceMetalProjectSSHKey() *schema.Resource {
+func DataSource() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceMetalProjectSSHKeyRead,
 		Schema: map[string]*schema.Schema{
@@ -64,7 +66,7 @@ func dataSourceMetalProjectSSHKey() *schema.Resource {
 }
 
 func dataSourceMetalProjectSSHKeyRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config).metal
+	client := meta.(*internal.Config).Metal
 
 	search := d.Get("search").(string)
 	id := d.Get("id").(string)
@@ -84,7 +86,7 @@ func dataSourceMetalProjectSSHKeyRead(d *schema.ResourceData, meta interface{}) 
 	}
 	keys, _, err := client.Projects.ListSSHKeys(projectID, searchOpts)
 	if err != nil {
-		err = fmt.Errorf("Error listing project ssh keys: %s", friendlyError(err))
+		err = fmt.Errorf("Error listing project ssh keys: %s", internal.FriendlyError(err))
 		return err
 	}
 

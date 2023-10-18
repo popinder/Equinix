@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 	"strings"
@@ -67,12 +68,12 @@ func dataSourceNetworkAccount() *schema.Resource {
 }
 
 func dataSourceNetworkAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	conf := m.(*Config)
+	conf := m.(*internal.Config)
 	var diags diag.Diagnostics
 	metro := d.Get(networkAccountSchemaNames["MetroCode"]).(string)
 	name := d.Get(networkAccountSchemaNames["Name"]).(string)
 	status := d.Get(networkAccountSchemaNames["Status"]).(string)
-	accounts, err := conf.ne.GetAccounts(metro)
+	accounts, err := conf.Ne.GetAccounts(metro)
 	if err != nil {
 		return diag.FromErr(err)
 	}

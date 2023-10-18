@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 	"log"
@@ -46,7 +47,7 @@ func testSweepNetworkDevice(region string) error {
 		log.Printf("[INFO][SWEEPER_LOG] error loading configuration: %s", err)
 		return err
 	}
-	devices, err := config.ne.GetDevices([]string{
+	devices, err := config.Ne.GetDevices([]string{
 		ne.DeviceStateInitializing,
 		ne.DeviceStateProvisioned,
 		ne.DeviceStateProvisioning,
@@ -68,7 +69,7 @@ func testSweepNetworkDevice(region string) error {
 		if ne.StringValue(device.RedundancyType) != "PRIMARY" {
 			continue
 		}
-		if err := config.ne.DeleteDevice(ne.StringValue(device.UUID)); err != nil {
+		if err := config.Ne.DeleteDevice(ne.StringValue(device.UUID)); err != nil {
 			log.Printf("[INFO][SWEEPER_LOG] error deleting NetworkDevice resource %s (%s): %s", ne.StringValue(device.UUID), ne.StringValue(device.Name), err)
 		} else {
 			log.Printf("[INFO][SWEEPER_LOG] sent delete request for NetworkDevice resource %s (%s)", ne.StringValue(device.UUID), ne.StringValue(device.Name))
@@ -906,7 +907,7 @@ func testAccNeDeviceExists(resourceName string, device *ne.Device) resource.Test
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource has no ID attribute set")
 		}
-		client := testAccProvider.Meta().(*Config).ne
+		client := testAccProvider.Meta().(*internal.Config).Ne
 		resp, err := client.GetDevice(rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error when fetching network device '%s': %s", rs.Primary.ID, err)
@@ -921,7 +922,7 @@ func testAccNeDeviceSecondaryExists(primary, secondary *ne.Device) resource.Test
 		if ne.StringValue(primary.RedundantUUID) == "" {
 			return fmt.Errorf("secondary device UUID is not set")
 		}
-		client := testAccProvider.Meta().(*Config).ne
+		client := testAccProvider.Meta().(*internal.Config).Ne
 		resp, err := client.GetDevice(ne.StringValue(primary.RedundantUUID))
 		if err != nil {
 			return fmt.Errorf("error when fetching network device '%s': %s", ne.StringValue(primary.RedundantUUID), err)
@@ -940,7 +941,7 @@ func testAccNeDevicePairExists(resourceName string, primary, secondary *ne.Devic
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource has no ID attribute set")
 		}
-		client := testAccProvider.Meta().(*Config).ne
+		client := testAccProvider.Meta().(*internal.Config).Ne
 		resp, err := client.GetDevice(rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error when fetching primary network device '%s': %s", rs.Primary.ID, err)
@@ -1130,7 +1131,7 @@ func testAccNeDeviceACL(resourceName string, device *ne.Device) resource.TestChe
 		}
 		templateId := rs.Primary.ID
 		deviceID := ne.StringValue(device.UUID)
-		client := testAccProvider.Meta().(*Config).ne
+		client := testAccProvider.Meta().(*internal.Config).Ne
 		if ne.StringValue(device.ACLTemplateUUID) != rs.Primary.ID {
 			return fmt.Errorf("acl_template_id for device %s does not match %v - %v", deviceID, ne.StringValue(device.ACLTemplateUUID), templateId)
 		}

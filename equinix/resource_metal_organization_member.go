@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"log"
 	"path"
@@ -117,20 +118,20 @@ func resourceMetalOrganizationMember() *schema.Resource {
 }
 
 func resourceMetalOrganizationMemberCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config).metal
+	client := meta.(*internal.Config).Metal
 
 	email := d.Get("invitee").(string)
 	createRequest := &packngo.InvitationCreateRequest{
 		Invitee:     email,
-		Roles:       convertStringArr(d.Get("roles").(*schema.Set).List()),
-		ProjectsIDs: convertStringArr(d.Get("projects_ids").(*schema.Set).List()),
+		Roles:       internal.ConvertStringArr(d.Get("roles").(*schema.Set).List()),
+		ProjectsIDs: internal.ConvertStringArr(d.Get("projects_ids").(*schema.Set).List()),
 		Message:     strings.TrimSpace(d.Get("message").(string)),
 	}
 
 	orgID := d.Get("organization_id").(string)
 	_, _, err := client.Invitations.Create(orgID, createRequest, nil)
 	if err != nil {
-		return friendlyError(err)
+		return internal.FriendlyError(err)
 	}
 
 	d.SetId(fmt.Sprintf("%s:%s", email, orgID))
@@ -154,7 +155,7 @@ func findMember(invitee string, members []packngo.Member, invitations []packngo.
 }
 
 func resourceMetalOrganizationMemberRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config).metal
+	client := meta.(*internal.Config).Metal
 	parts := strings.Split(d.Id(), ":")
 	invitee := parts[0]
 	orgID := parts[1]
@@ -162,9 +163,9 @@ func resourceMetalOrganizationMemberRead(d *schema.ResourceData, meta interface{
 	listOpts := &packngo.ListOptions{Includes: []string{"user"}}
 	invitations, _, err := client.Invitations.List(orgID, listOpts)
 	if err != nil {
-		err = friendlyError(err)
+		err = internal.FriendlyError(err)
 		// If the org was destroyed, mark as gone.
-		if isNotFound(err) {
+		if internal.IsNotFound(err) {
 			d.SetId("")
 			return nil
 		}
@@ -173,9 +174,9 @@ func resourceMetalOrganizationMemberRead(d *schema.ResourceData, meta interface{
 
 	members, _, err := client.Members.List(orgID, &packngo.GetOptions{Includes: []string{"user"}})
 	if err != nil {
-		err = friendlyError(err)
+		err = internal.FriendlyError(err)
 		// If the org was destroyed, mark as gone.
-		if isNotFound(err) {
+		if internal.IsNotFound(err) {
 			d.SetId("")
 			return nil
 		}
@@ -195,8 +196,8 @@ func resourceMetalOrganizationMemberRead(d *schema.ResourceData, meta interface{
 		}
 		return setMap(d, map[string]interface{}{
 			"state":           "active",
-			"roles":           stringArrToIfArr(member.Member.Roles),
-			"projects_ids":    stringArrToIfArr(projectIDs),
+			"roles":           internal.StringArrToIfArr(member.Member.Roles),
+			"projects_ids":    internal.StringArrToIfArr(projectIDs),
 			"organization_id": path.Base(member.Member.Organization.URL),
 		})
 	} else if member.isInvitation() {
@@ -219,14 +220,14 @@ func resourceMetalOrganizationMemberRead(d *schema.ResourceData, meta interface{
 }
 
 func resourceMetalOrganizationMemberDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config).metal
+	client := meta.(*internal.Config).Metal
 
 	listOpts := &packngo.ListOptions{Includes: []string{"user"}}
 	invitations, _, err := client.Invitations.List(d.Get("organization_id").(string), listOpts)
 	if err != nil {
-		err = friendlyError(err)
+		err = internal.FriendlyError(err)
 		// If the org was destroyed, mark as gone.
-		if isNotFound(err) {
+		if internal.IsNotFound(err) {
 			d.SetId("")
 			return nil
 		}
@@ -236,9 +237,9 @@ func resourceMetalOrganizationMemberDelete(d *schema.ResourceData, meta interfac
 	orgID := d.Get("organization_id").(string)
 	org, _, err := client.Organizations.Get(orgID, &packngo.GetOptions{Includes: []string{"members", "members.user"}})
 	if err != nil {
-		err = friendlyError(err)
+		err = internal.FriendlyError(err)
 		// If the org was destroyed, mark as gone.
-		if isNotFound(err) {
+		if internal.IsNotFound(err) {
 			d.SetId("")
 			return nil
 		}
@@ -254,9 +255,9 @@ func resourceMetalOrganizationMemberDelete(d *schema.ResourceData, meta interfac
 	if member.isMember() {
 		_, err = client.Members.Delete(orgID, member.Member.ID)
 		if err != nil {
-			err = friendlyError(err)
+			err = internal.FriendlyError(err)
 			// If the member was deleted, mark as gone.
-			if isNotFound(err) {
+			if internal.IsNotFound(err) {
 				d.SetId("")
 				return nil
 			}
@@ -265,9 +266,9 @@ func resourceMetalOrganizationMemberDelete(d *schema.ResourceData, meta interfac
 	} else if member.isInvitation() {
 		_, err = client.Invitations.Delete(member.Invitation.ID)
 		if err != nil {
-			err = friendlyError(err)
+			err = internal.FriendlyError(err)
 			// If the invitation was deleted, mark as gone.
-			if isNotFound(err) {
+			if internal.IsNotFound(err) {
 				d.SetId("")
 				return nil
 			}

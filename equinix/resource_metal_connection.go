@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"math"
 	"reflect"
@@ -89,7 +90,7 @@ func resourceMetalConnection() *schema.Resource {
 				Description:   "Metro where the connection will be created",
 				ConflictsWith: []string{"facility"},
 				ForceNew:      true,
-				StateFunc:     toLower,
+				StateFunc:     internal.ToLower,
 			},
 			"redundancy": {
 				Type:        schema.TypeString,
@@ -198,8 +199,8 @@ func resourceMetalConnection() *schema.Resource {
 }
 
 func resourceMetalConnectionCreate(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	facility, facOk := d.GetOk("facility")
 	metro, metOk := d.GetOk("metro")
@@ -218,7 +219,7 @@ func resourceMetalConnectionCreate(d *schema.ResourceData, meta interface{}) err
 	vlans := []int{}
 	vlansNum := d.Get("vlans.#").(int)
 	if vlansNum > 0 {
-		vlans = convertIntArr2(d.Get("vlans").([]interface{}))
+		vlans = internal.ConvertIntArr2(d.Get("vlans").([]interface{}))
 	}
 	connRedundancy := packngo.ConnectionRedundancy(d.Get("redundancy").(string))
 
@@ -251,7 +252,7 @@ func resourceMetalConnectionCreate(d *schema.ResourceData, meta interface{}) err
 	// this could be generalized, see $ grep "d.Get(\"tags" *
 	tags := d.Get("tags.#").(int)
 	if tags > 0 {
-		connReq.Tags = convertStringArr(d.Get("tags").([]interface{}))
+		connReq.Tags = internal.ConvertStringArr(d.Get("tags").([]interface{}))
 	}
 
 	if metOk {
@@ -293,7 +294,7 @@ func resourceMetalConnectionCreate(d *schema.ResourceData, meta interface{}) err
 			}
 			proj, _, err := client.Projects.Get(projectId.(string), &packngo.GetOptions{Includes: []string{"organization"}})
 			if err != nil {
-				return friendlyError(err)
+				return internal.FriendlyError(err)
 			}
 			organizationId = proj.Organization.ID
 		}
@@ -315,8 +316,8 @@ func resourceMetalConnectionCreate(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceMetalConnectionUpdate(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	if d.HasChange("locked") {
 		var action func(string) (*packngo.Response, error)
@@ -326,7 +327,7 @@ func resourceMetalConnectionUpdate(d *schema.ResourceData, meta interface{}) err
 			action = client.Devices.Unlock
 		}
 		if _, err := action(d.Id()); err != nil {
-			return friendlyError(err)
+			return internal.FriendlyError(err)
 		}
 	}
 	ur := packngo.ConnectionUpdateRequest{}
@@ -360,13 +361,13 @@ func resourceMetalConnectionUpdate(d *schema.ResourceData, meta interface{}) err
 			}
 			ur.Tags = sts
 		default:
-			return friendlyError(fmt.Errorf("garbage in tags: %s", ts))
+			return internal.FriendlyError(fmt.Errorf("garbage in tags: %s", ts))
 		}
 	}
 
 	if !reflect.DeepEqual(ur, packngo.ConnectionUpdateRequest{}) {
 		if _, _, err := client.Connections.Update(d.Id(), &ur, nil); err != nil {
-			return friendlyError(err)
+			return internal.FriendlyError(err)
 		}
 	}
 
@@ -376,8 +377,8 @@ func resourceMetalConnectionUpdate(d *schema.ResourceData, meta interface{}) err
 
 		if connType == packngo.ConnectionShared {
 			old, new := d.GetChange("vlans")
-			oldVlans := convertIntArr2(old.([]interface{}))
-			newVlans := convertIntArr2(new.([]interface{}))
+			oldVlans := internal.ConvertIntArr2(old.([]interface{}))
+			newVlans := internal.ConvertIntArr2(new.([]interface{}))
 			maxVlans := int(math.Max(float64(len(oldVlans)), float64(len(newVlans))))
 
 			ports := d.Get("ports").([]interface{})
@@ -387,19 +388,19 @@ func resourceMetalConnectionUpdate(d *schema.ResourceData, meta interface{}) err
 					if i+1 > len(newVlans) {
 						// The VNID was removed; unassign the old VNID
 						if _, _, err := updateHiddenVirtualCircuitVNID(client, ports[i].(map[string]interface{}), ""); err != nil {
-							return friendlyError(err)
+							return internal.FriendlyError(err)
 						}
 					} else {
 						j := slices.Index(oldVlans, newVlans[i])
 						if j > i {
 							// The VNID was moved to a different list index; unassign the VNID for the old index so that it is available for reassignment
 							if _, _, err := updateHiddenVirtualCircuitVNID(client, ports[j].(map[string]interface{}), ""); err != nil {
-								return friendlyError(err)
+								return internal.FriendlyError(err)
 							}
 						}
 						// Assign the VNID (whether it is new or moved) to the correct port
 						if _, _, err := updateHiddenVirtualCircuitVNID(client, ports[i].(map[string]interface{}), strconv.Itoa(newVlans[i])); err != nil {
-							return friendlyError(err)
+							return internal.FriendlyError(err)
 						}
 					}
 				}
@@ -423,8 +424,8 @@ func updateHiddenVirtualCircuitVNID(client *packngo.Client, port map[string]inte
 }
 
 func resourceMetalConnectionRead(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	connId := d.Id()
 	conn, _, err := client.Connections.Get(
@@ -489,11 +490,11 @@ func resourceMetalConnectionRead(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceMetalConnectionDelete(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 	resp, err := client.Connections.Delete(d.Id(), true)
-	if ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err) != nil {
-		return friendlyError(err)
+	if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err) != nil {
+		return internal.FriendlyError(err)
 	}
 	return nil
 }

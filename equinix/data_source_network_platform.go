@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 
@@ -104,10 +105,10 @@ func dataSourceNetworkDevicePlatform() *schema.Resource {
 }
 
 func dataSourceNetworkDevicePlatformRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	conf := m.(*Config)
+	conf := m.(*internal.Config)
 	var diags diag.Diagnostics
 	typeCode := d.Get(networkDevicePlatformSchemaNames["DeviceTypeCode"]).(string)
-	platforms, err := conf.ne.GetDevicePlatforms(typeCode)
+	platforms, err := conf.Ne.GetDevicePlatforms(typeCode)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -120,19 +121,19 @@ func dataSourceNetworkDevicePlatformRead(ctx context.Context, d *schema.Resource
 			continue
 		}
 		if v, ok := d.GetOk(networkDevicePlatformSchemaNames["PackageCodes"]); ok {
-			pkgCodes := expandSetToStringList(v.(*schema.Set))
+			pkgCodes := internal.ExpandSetToStringList(v.(*schema.Set))
 			if !stringsFound(pkgCodes, platform.PackageCodes) {
 				continue
 			}
 		}
 		if v, ok := d.GetOk(networkDevicePlatformSchemaNames["ManagementTypes"]); ok {
-			mgmtTypes := expandSetToStringList(v.(*schema.Set))
+			mgmtTypes := internal.ExpandSetToStringList(v.(*schema.Set))
 			if !stringsFound(mgmtTypes, platform.ManagementTypes) {
 				continue
 			}
 		}
 		if v, ok := d.GetOk(networkDevicePlatformSchemaNames["LicenseOptions"]); ok {
-			licOptions := expandSetToStringList(v.(*schema.Set))
+			licOptions := internal.ExpandSetToStringList(v.(*schema.Set))
 			if !stringsFound(licOptions, platform.LicenseOptions) {
 				continue
 			}

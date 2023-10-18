@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 	"log"
@@ -538,7 +539,7 @@ func TestAccMetalDevice_allowChangesErrorOnUnsupportedAttribute(t *testing.T) {
 }
 
 func testAccMetalDeviceCheckDestroyed(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config).metal
+	client := testAccProvider.Meta().(*internal.Config).Metal
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "equinix_metal_device" {
@@ -574,7 +575,7 @@ func testAccMetalDeviceExists(n string, device *packngo.Device) resource.TestChe
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		client := testAccProvider.Meta().(*Config).metal
+		client := testAccProvider.Meta().(*internal.Config).Metal
 
 		foundDevice, _, err := client.Devices.Get(rs.Primary.ID, nil)
 		if err != nil {
@@ -1036,7 +1037,7 @@ func TestAccMetalDevice_readErrorHandling(t *testing.T) {
 				newResource: false,
 				handler: func(w http.ResponseWriter, r *http.Request) {
 					w.Header().Add("Content-Type", "application/json")
-					w.Header().Add("X-Request-Id", "needed for friendlyError")
+					w.Header().Add("X-Request-Id", "needed for FriendlyError")
 					w.WriteHeader(http.StatusForbidden)
 				},
 			},
@@ -1048,7 +1049,7 @@ func TestAccMetalDevice_readErrorHandling(t *testing.T) {
 				newResource: false,
 				handler: func(w http.ResponseWriter, r *http.Request) {
 					w.Header().Add("Content-Type", "application/json")
-					w.Header().Add("X-Request-Id", "needed for friendlyError")
+					w.Header().Add("X-Request-Id", "needed for FriendlyError")
 					w.WriteHeader(http.StatusNotFound)
 				},
 			},
@@ -1060,7 +1061,7 @@ func TestAccMetalDevice_readErrorHandling(t *testing.T) {
 				newResource: true,
 				handler: func(w http.ResponseWriter, r *http.Request) {
 					w.Header().Add("Content-Type", "application/json")
-					w.Header().Add("X-Request-Id", "needed for friendlyError")
+					w.Header().Add("X-Request-Id", "needed for FriendlyError")
 					w.WriteHeader(http.StatusForbidden)
 				},
 			},
@@ -1072,7 +1073,7 @@ func TestAccMetalDevice_readErrorHandling(t *testing.T) {
 				newResource: true,
 				handler: func(w http.ResponseWriter, r *http.Request) {
 					w.Header().Add("Content-Type", "application/json")
-					w.Header().Add("X-Request-Id", "needed for friendlyError")
+					w.Header().Add("X-Request-Id", "needed for FriendlyError")
 					w.WriteHeader(http.StatusNotFound)
 				},
 			},
@@ -1084,7 +1085,7 @@ func TestAccMetalDevice_readErrorHandling(t *testing.T) {
 				newResource: true,
 				handler: func(w http.ResponseWriter, r *http.Request) {
 					w.Header().Add("Content-Type", "application/json")
-					w.Header().Add("X-Request-Id", "needed for friendlyError")
+					w.Header().Add("X-Request-Id", "needed for FriendlyError")
 					w.WriteHeader(http.StatusBadRequest)
 				},
 			},
@@ -1103,7 +1104,7 @@ func TestAccMetalDevice_readErrorHandling(t *testing.T) {
 			}
 
 			mockAPI := httptest.NewServer(http.HandlerFunc(tt.args.handler))
-			meta := &Config{
+			meta := &internal.Config{
 				BaseURL: mockAPI.URL,
 				Token:   "fakeTokenForMock",
 			}
@@ -1132,8 +1133,8 @@ func testAccWaitForMetalDeviceActive(project, deviceHostName string) resource.Im
 
 		meta := testAccProvider.Meta()
 		rd := new(schema.ResourceData)
-		meta.(*Config).addModuleToMetalUserAgent(rd)
-		client := meta.(*Config).metal
+		meta.(*internal.Config).AddModuleToMetalUserAgent(rd)
+		client := meta.(*internal.Config).Metal
 		devices, _, err := client.Devices.List(rs.Primary.ID, &packngo.ListOptions{Search: deviceHostName})
 		if err != nil {
 			return "", fmt.Errorf("error while fetching devices for project [%s], error: %w", rs.Primary.ID, err)

@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 
@@ -341,8 +342,8 @@ func createECXL2ServiceProfileResourceSchema() map[string]*schema.Schema {
 }
 
 func resourceECXL2ServiceProfileCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ecx
-	m.(*Config).addModuleToECXUserAgent(&client, d)
+	client := m.(*internal.Config).Ecx
+	m.(*internal.Config).AddModuleToECXUserAgent(&client, d)
 	var diags diag.Diagnostics
 	profile := createECXL2ServiceProfile(d)
 	uuid, err := client.CreateL2ServiceProfile(*profile)
@@ -355,8 +356,8 @@ func resourceECXL2ServiceProfileCreate(ctx context.Context, d *schema.ResourceDa
 }
 
 func resourceECXL2ServiceProfileRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ecx
-	m.(*Config).addModuleToECXUserAgent(&client, d)
+	client := m.(*internal.Config).Ecx
+	m.(*internal.Config).AddModuleToECXUserAgent(&client, d)
 	var diags diag.Diagnostics
 	profile, err := client.GetL2ServiceProfile(d.Id())
 	if err != nil {
@@ -369,8 +370,8 @@ func resourceECXL2ServiceProfileRead(ctx context.Context, d *schema.ResourceData
 }
 
 func resourceECXL2ServiceProfileUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ecx
-	m.(*Config).addModuleToECXUserAgent(&client, d)
+	client := m.(*internal.Config).Ecx
+	m.(*internal.Config).AddModuleToECXUserAgent(&client, d)
 	var diags diag.Diagnostics
 	profile := createECXL2ServiceProfile(d)
 	if err := client.UpdateL2ServiceProfile(*profile); err != nil {
@@ -381,8 +382,8 @@ func resourceECXL2ServiceProfileUpdate(ctx context.Context, d *schema.ResourceDa
 }
 
 func resourceECXL2ServiceProfileDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ecx
-	m.(*Config).addModuleToECXUserAgent(&client, d)
+	client := m.(*internal.Config).Ecx
+	m.(*internal.Config).AddModuleToECXUserAgent(&client, d)
 	var diags diag.Diagnostics
 	if err := client.DeleteL2ServiceProfile(d.Id()); err != nil {
 		restErr, ok := err.(rest.Error)
@@ -442,13 +443,13 @@ func createECXL2ServiceProfile(d *schema.ResourceData) *ecx.L2ServiceProfile {
 		profile.Name = ecx.String(v.(string))
 	}
 	if v, ok := d.GetOk(ecxL2ServiceProfileSchemaNames["OnBandwidthThresholdNotification"]); ok {
-		profile.OnBandwidthThresholdNotification = expandSetToStringList(v.(*schema.Set))
+		profile.OnBandwidthThresholdNotification = internal.ExpandSetToStringList(v.(*schema.Set))
 	}
 	if v, ok := d.GetOk(ecxL2ServiceProfileSchemaNames["OnProfileApprovalRejectNotification"]); ok {
-		profile.OnProfileApprovalRejectNotification = expandSetToStringList(v.(*schema.Set))
+		profile.OnProfileApprovalRejectNotification = internal.ExpandSetToStringList(v.(*schema.Set))
 	}
 	if v, ok := d.GetOk(ecxL2ServiceProfileSchemaNames["OnVcApprovalRejectionNotification"]); ok {
-		profile.OnVcApprovalRejectionNotification = expandSetToStringList(v.(*schema.Set))
+		profile.OnVcApprovalRejectionNotification = internal.ExpandSetToStringList(v.(*schema.Set))
 	}
 	if v, ok := d.GetOk(ecxL2ServiceProfileSchemaNames["OverSubscription"]); ok {
 		profile.OverSubscription = ecx.String(v.(string))
@@ -457,7 +458,7 @@ func createECXL2ServiceProfile(d *schema.ResourceData) *ecx.L2ServiceProfile {
 		profile.Private = ecx.Bool(v.(bool))
 	}
 	if v, ok := d.GetOk(ecxL2ServiceProfileSchemaNames["PrivateUserEmails"]); ok {
-		profile.PrivateUserEmails = expandSetToStringList(v.(*schema.Set))
+		profile.PrivateUserEmails = internal.ExpandSetToStringList(v.(*schema.Set))
 	}
 	if v, ok := d.GetOk(ecxL2ServiceProfileSchemaNames["RequiredRedundancy"]); ok {
 		profile.RequiredRedundancy = ecx.Bool(v.(bool))
@@ -547,7 +548,7 @@ func updateECXL2ServiceProfileResource(profile *ecx.L2ServiceProfile, d *schema.
 	// API accepts capitalizations of the private user emails and converts it to a lowercase string
 	// If API retuns same emails in lowercase we keep to suppress diff
 	if v, ok := d.GetOk(ecxL2ServiceProfileSchemaNames["PrivateUserEmails"]); ok {
-		prevPrivateUserEmails := expandSetToStringList(v.(*schema.Set))
+		prevPrivateUserEmails := internal.ExpandSetToStringList(v.(*schema.Set))
 		if slicesMatchCaseInsensitive(prevPrivateUserEmails, profile.PrivateUserEmails) {
 			profile.PrivateUserEmails = prevPrivateUserEmails
 		}

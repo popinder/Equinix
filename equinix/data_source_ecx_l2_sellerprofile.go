@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"bytes"
 	"context"
 	"fmt"
@@ -229,12 +230,12 @@ func createECXL2SellerProfileSchema() map[string]*schema.Schema {
 }
 
 func dataSourceECXL2SellerProfileRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	conf := m.(*Config)
+	conf := m.(*internal.Config)
 	var diags diag.Diagnostics
 	name := d.Get(ecxL2SellerProfileSchemaNames["Name"]).(string)
 	orgName := d.Get(ecxL2SellerProfileSchemaNames["OrganizationName"]).(string)
 	orgGlobalName := d.Get(ecxL2SellerProfileSchemaNames["GlobalOrganization"]).(string)
-	profiles, err := conf.ecx.GetL2SellerProfiles()
+	profiles, err := conf.Ecx.GetL2SellerProfiles()
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -346,19 +347,19 @@ func ecxL2ServiceProfileSpeedBandHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%d-", m[ecxL2ServiceProfileSpeedBandSchemaNames["Speed"]].(int)))
 	buf.WriteString(fmt.Sprintf("%s-", m[ecxL2ServiceProfileSpeedBandSchemaNames["SpeedUnit"]].(string)))
-	return hashcodeString(buf.String())
+	return internal.HashcodeString(buf.String())
 }
 
 func ecxL2SellerProfileMetroHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m[ecxL2SellerProfileMetrosSchemaNames["Code"]].(string)))
-	return hashcodeString(buf.String())
+	return internal.HashcodeString(buf.String())
 }
 
 func ecxL2SellerProfileAdditionalInfoHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m[ecxL2SellerProfileAdditionalInfosSchemaNames["Name"]].(string)))
-	return hashcodeString(buf.String())
+	return internal.HashcodeString(buf.String())
 }

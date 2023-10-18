@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"path"
 	"strings"
@@ -346,7 +347,7 @@ func TestAccMetalPortVlanAttachment_hybridMultipleVlans(t *testing.T) {
 }
 
 func testAccMetalPortVlanAttachmentCheckDestroyed(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config).metal
+	client := testAccProvider.Meta().(*internal.Config).Metal
 
 	device_id := ""
 	vlan_id := ""

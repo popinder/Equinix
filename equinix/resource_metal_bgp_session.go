@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -49,8 +50,8 @@ func resourceMetalBGPSession() *schema.Resource {
 }
 
 func resourceMetalBGPSessionCreate(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	dID := d.Get("device_id").(string)
 	addressFamily := d.Get("address_family").(string)
@@ -62,7 +63,7 @@ func resourceMetalBGPSessionCreate(d *schema.ResourceData, meta interface{}) err
 			DefaultRoute:  &defaultRoute,
 		})
 	if err != nil {
-		return friendlyError(err)
+		return internal.FriendlyError(err)
 	}
 
 	d.SetId(bgpSession.ID)
@@ -70,14 +71,14 @@ func resourceMetalBGPSessionCreate(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceMetalBGPSessionRead(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	bgpSession, _, err := client.BGPSessions.Get(d.Id(),
 		&packngo.GetOptions{Includes: []string{"device"}})
 	if err != nil {
-		err = friendlyError(err)
-		if isNotFound(err) {
+		err = internal.FriendlyError(err)
+		if internal.IsNotFound(err) {
 			log.Printf("[WARN] BGP Session (%s) not found, removing from state", d.Id())
 
 			d.SetId("")
@@ -100,8 +101,8 @@ func resourceMetalBGPSessionRead(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceMetalBGPSessionDelete(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 	resp, err := client.BGPSessions.Delete(d.Id())
-	return ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err)
+	return internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err)
 }

@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 	"log"
@@ -27,7 +28,7 @@ func testSweepNetworkSSHKey(region string) error {
 		log.Printf("[INFO][SWEEPER_LOG] error loading configuration: %s", err)
 		return err
 	}
-	keys, err := config.ne.GetSSHPublicKeys()
+	keys, err := config.Ne.GetSSHPublicKeys()
 	if err != nil {
 		log.Printf("[INFO][SWEEPER_LOG] error fetching NetworkSSHKey list: %s", err)
 		return err
@@ -38,7 +39,7 @@ func testSweepNetworkSSHKey(region string) error {
 			nonSweepableCount++
 			continue
 		}
-		if err := config.ne.DeleteSSHPublicKey(ne.StringValue(key.UUID)); err != nil {
+		if err := config.Ne.DeleteSSHPublicKey(ne.StringValue(key.UUID)); err != nil {
 			log.Printf("[INFO][SWEEPER_LOG] error deleting NetworkSSHKey resource %s (%s): %s", ne.StringValue(key.UUID), ne.StringValue(key.Name), err)
 		} else {
 			log.Printf("[INFO][SWEEPER_LOG] sent delete request for NetworkSSHKey resource %s (%s)", ne.StringValue(key.UUID), ne.StringValue(key.Name))
@@ -96,7 +97,7 @@ func testAccNetworkSSHKeyExists(resourceName string, key *ne.SSHPublicKey) resou
 		if !ok {
 			return fmt.Errorf("resource not found: %s", resourceName)
 		}
-		client := testAccProvider.Meta().(*Config).ne
+		client := testAccProvider.Meta().(*internal.Config).Ne
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource has no ID attribute set")
 		}

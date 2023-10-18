@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"reflect"
 	"testing"
@@ -320,7 +321,7 @@ func TestMetalVlan_matchingVlan(t *testing.T) {
 }
 
 func testAccMetalDatasourceVlanCheckDestroyed(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config).metal
+	client := testAccProvider.Meta().(*internal.Config).Metal
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "equinix_metal_vlan" {

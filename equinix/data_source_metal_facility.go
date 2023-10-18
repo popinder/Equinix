@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"strings"
 
@@ -81,7 +82,7 @@ func dataSourceMetalFacility() *schema.Resource {
 }
 
 func dataSourceMetalFacilityRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config).metal
+	client := meta.(*internal.Config).Metal
 	code := d.Get("code").(string)
 
 	_, capacityOk := d.GetOk("capacity")
@@ -114,7 +115,7 @@ func dataSourceMetalFacilityRead(d *schema.ResourceData, meta interface{}) error
 	for _, f := range facilities {
 		if f.Code == code {
 			if dfOk {
-				unsupported := difference(convertStringArr(dfRaw.(*schema.Set).List()), f.Features)
+				unsupported := internal.Difference(internal.ConvertStringArr(dfRaw.(*schema.Set).List()), f.Features)
 				if len(unsupported) > 0 {
 					return fmt.Errorf("facililty %s doesn't have feature(s) %v", f.Code, unsupported)
 				}

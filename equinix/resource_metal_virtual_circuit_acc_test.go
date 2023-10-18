@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"log"
 	"os"
@@ -59,7 +60,7 @@ func testSweepVirtualCircuits(region string) error {
 }
 
 func testAccMetalVirtualCircuitCheckDestroyed(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config).metal
+	client := testAccProvider.Meta().(*internal.Config).Metal
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "equinix_metal_virtual_circuit" {

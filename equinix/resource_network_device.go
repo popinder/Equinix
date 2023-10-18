@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 	"io"
@@ -874,8 +875,8 @@ func createVendorConfigurationSchema() map[string]*schema.Schema {
 }
 
 func resourceNetworkDeviceCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	primary, secondary := createNetworkDevices(d)
 	var err error
@@ -927,8 +928,8 @@ func resourceNetworkDeviceCreate(ctx context.Context, d *schema.ResourceData, m 
 }
 
 func resourceNetworkDeviceRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	var err error
 	var primary, secondary *ne.Device
@@ -953,8 +954,8 @@ func resourceNetworkDeviceRead(ctx context.Context, d *schema.ResourceData, m in
 }
 
 func resourceNetworkDeviceUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	supportedChanges := []string{
 		neDeviceSchemaNames["Name"], neDeviceSchemaNames["TermLength"],
@@ -989,8 +990,8 @@ func resourceNetworkDeviceUpdate(ctx context.Context, d *schema.ResourceData, m 
 }
 
 func resourceNetworkDeviceDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	waitConfigs := []*retry.StateChangeConf{
 		createNetworkDeviceStatusDeleteWaitConfiguration(client.GetDevice, d.Id(), 5*time.Second, d.Timeout(schema.TimeoutDelete)),
@@ -1070,7 +1071,7 @@ func createNetworkDevices(d *schema.ResourceData) (*ne.Device, *ne.Device) {
 		primary.AccountNumber = ne.String(v.(string))
 	}
 	if v, ok := d.GetOk(neDeviceSchemaNames["Notifications"]); ok {
-		primary.Notifications = expandSetToStringList(v.(*schema.Set))
+		primary.Notifications = internal.ExpandSetToStringList(v.(*schema.Set))
 	}
 	if v, ok := d.GetOk(neDeviceSchemaNames["PurchaseOrderNumber"]); ok {
 		primary.PurchaseOrderNumber = ne.String(v.(string))
@@ -1092,7 +1093,7 @@ func createNetworkDevices(d *schema.ResourceData) (*ne.Device, *ne.Device) {
 	}
 	primary.IsSelfManaged = ne.Bool(d.Get(neDeviceSchemaNames["IsSelfManaged"]).(bool))
 	if v, ok := d.GetOk(neDeviceSchemaNames["VendorConfiguration"]); ok {
-		primary.VendorConfiguration = expandInterfaceMapToStringMap(v.(map[string]interface{}))
+		primary.VendorConfiguration = internal.ExpandInterfaceMapToStringMap(v.(map[string]interface{}))
 	}
 	if v, ok := d.GetOk(neDeviceSchemaNames["WanInterfaceId"]); ok {
 		primary.WanInterfaceId = ne.String(v.(string))
@@ -1316,7 +1317,7 @@ func expandNetworkDeviceSecondary(devices []interface{}) *ne.Device {
 		transformed.AccountNumber = ne.String(v.(string))
 	}
 	if v, ok := device[neDeviceSchemaNames["Notifications"]]; ok {
-		transformed.Notifications = expandSetToStringList(v.(*schema.Set))
+		transformed.Notifications = internal.ExpandSetToStringList(v.(*schema.Set))
 	}
 	if v, ok := device[neDeviceSchemaNames["AdditionalBandwidth"]]; ok && !isEmpty(v) {
 		transformed.AdditionalBandwidth = ne.Int(v.(int))
@@ -1325,7 +1326,7 @@ func expandNetworkDeviceSecondary(devices []interface{}) *ne.Device {
 		transformed.WanInterfaceId = ne.String(v.(string))
 	}
 	if v, ok := device[neDeviceSchemaNames["VendorConfiguration"]]; ok {
-		transformed.VendorConfiguration = expandInterfaceMapToStringMap(v.(map[string]interface{}))
+		transformed.VendorConfiguration = internal.ExpandInterfaceMapToStringMap(v.(map[string]interface{}))
 	}
 	if v, ok := device[neDeviceSchemaNames["UserPublicKey"]]; ok {
 		userKeys := expandNetworkDeviceUserKeys(v.(*schema.Set))
@@ -1496,7 +1497,7 @@ func fillNetworkDeviceUpdateRequest(updateReq ne.DeviceUpdateRequest, changes ma
 		case neDeviceSchemaNames["TermLength"]:
 			updateReq.WithTermLength(changeValue.(int))
 		case neDeviceSchemaNames["Notifications"]:
-			updateReq.WithNotifications(expandSetToStringList(changeValue.(*schema.Set)))
+			updateReq.WithNotifications(internal.ExpandSetToStringList(changeValue.(*schema.Set)))
 		case neDeviceSchemaNames["AdditionalBandwidth"]:
 			updateReq.WithAdditionalBandwidth(changeValue.(int))
 		case neDeviceSchemaNames["ACLTemplateUUID"]:

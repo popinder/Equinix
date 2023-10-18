@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"errors"
 	"fmt"
@@ -15,8 +16,8 @@ import (
 )
 
 func resourceFabricPortRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*Config).fabricClient
-	ctx = context.WithValue(ctx, v4.ContextAccessToken, meta.(*Config).FabricAuthToken)
+	client := meta.(*internal.Config).FabricClient
+	ctx = context.WithValue(ctx, v4.ContextAccessToken, meta.(*internal.Config).FabricAuthToken)
 	port, _, err := client.PortsApi.GetPortByUuid(ctx, d.Id())
 	if err != nil {
 		log.Printf("[WARN] Port %s not found , error %s", d.Id(), err)
@@ -83,8 +84,8 @@ func resourceFabricPortGetByPortName(ctx context.Context, d *schema.ResourceData
 		}
 	}()
 
-	client := meta.(*Config).fabricClient
-	ctx = context.WithValue(ctx, v4.ContextAccessToken, meta.(*Config).FabricAuthToken)
+	client := meta.(*internal.Config).FabricClient
+	ctx = context.WithValue(ctx, v4.ContextAccessToken, meta.(*internal.Config).FabricAuthToken)
 	portNameParam := d.Get("filters").(*schema.Set).List()
 	portName := portNameQueryParamToFabric(portNameParam)
 	ports, _, err := client.PortsApi.GetPorts(ctx, &portName)

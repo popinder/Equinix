@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"path"
 
@@ -108,7 +109,7 @@ func findOrgByName(os []packngo.Organization, name string) (*packngo.Organizatio
 }
 
 func dataSourceMetalOrganizationRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config).metal
+	client := meta.(*internal.Config).Metal
 	nameRaw, nameOK := d.GetOk("name")
 	orgIdRaw, orgIdOK := d.GetOk("organization_id")
 

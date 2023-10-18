@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"path"
 	"regexp"
@@ -123,8 +124,8 @@ func expandBGPConfig(d *schema.ResourceData) packngo.CreateBGPConfigRequest {
 }
 
 func resourceMetalProjectCreate(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	createRequest := &packngo.ProjectCreateRequest{
 		Name:           d.Get("name").(string),
@@ -133,7 +134,7 @@ func resourceMetalProjectCreate(d *schema.ResourceData, meta interface{}) error 
 
 	project, _, err := client.Projects.Create(createRequest)
 	if err != nil {
-		return friendlyError(err)
+		return internal.FriendlyError(err)
 	}
 
 	d.SetId(project.ID)
@@ -143,7 +144,7 @@ func resourceMetalProjectCreate(d *schema.ResourceData, meta interface{}) error 
 		bgpCR := expandBGPConfig(d)
 		_, err := client.BGPConfig.Create(project.ID, bgpCR)
 		if err != nil {
-			return friendlyError(err)
+			return internal.FriendlyError(err)
 		}
 	}
 
@@ -152,22 +153,22 @@ func resourceMetalProjectCreate(d *schema.ResourceData, meta interface{}) error 
 		pur := packngo.ProjectUpdateRequest{BackendTransfer: &backendTransfer}
 		_, _, err := client.Projects.Update(project.ID, &pur)
 		if err != nil {
-			return friendlyError(err)
+			return internal.FriendlyError(err)
 		}
 	}
 	return resourceMetalProjectRead(d, meta)
 }
 
 func resourceMetalProjectRead(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	proj, _, err := client.Projects.Get(d.Id(), nil)
 	if err != nil {
-		err = friendlyError(err)
+		err = internal.FriendlyError(err)
 
 		// If the project somehow already destroyed, mark as successfully gone.
-		if isNotFound(err) {
+		if internal.IsNotFound(err) {
 			d.SetId("")
 
 			return nil
@@ -193,7 +194,7 @@ func resourceMetalProjectRead(d *schema.ResourceData, meta interface{}) error {
 		if bgpConf.ID != "" {
 			err := d.Set("bgp_config", flattenBGPConfig(bgpConf))
 			if err != nil {
-				err = friendlyError(err)
+				err = internal.FriendlyError(err)
 				return err
 			}
 		}
@@ -232,8 +233,8 @@ func flattenBGPConfig(l *packngo.BGPConfig) []map[string]interface{} {
 }
 
 func resourceMetalProjectUpdate(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 	updateRequest := &packngo.ProjectUpdateRequest{}
 	if d.HasChange("name") {
 		pName := d.Get("name").(string)
@@ -255,7 +256,7 @@ func resourceMetalProjectUpdate(d *schema.ResourceData, meta interface{}) error 
 			bgpCreateRequest := expandBGPConfig(d)
 			_, err := client.BGPConfig.Create(d.Id(), bgpCreateRequest)
 			if err != nil {
-				return friendlyError(err)
+				return internal.FriendlyError(err)
 			}
 		} else {
 			if len(oldarr) == 1 {
@@ -269,14 +270,14 @@ func resourceMetalProjectUpdate(d *schema.ResourceData, meta interface{}) error 
 						"}", m["deployment_type"].(string), m["md5"].(string),
 					m["asn"].(int))
 
-				errStr := fmt.Errorf("BGP Config can not be removed from a project, please add back\n%s", bgpConfStr)
-				return friendlyError(errStr)
+				errStr := fmt.Errorf("BGP internal.Config can not be removed from a project, please add back\n%s", bgpConfStr)
+				return internal.FriendlyError(errStr)
 			}
 		}
 	} else {
 		_, _, err := client.Projects.Update(d.Id(), updateRequest)
 		if err != nil {
-			return friendlyError(err)
+			return internal.FriendlyError(err)
 		}
 	}
 
@@ -284,12 +285,12 @@ func resourceMetalProjectUpdate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceMetalProjectDelete(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	resp, err := client.Projects.Delete(d.Id())
-	if ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err) != nil {
-		return friendlyError(err)
+	if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err) != nil {
+		return internal.FriendlyError(err)
 	}
 
 	d.SetId("")

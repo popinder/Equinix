@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/packethost/packngo"
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 )
 
 type mockHWService struct {
@@ -79,7 +80,7 @@ func Test_waitUntilReservationProvisionable(t *testing.T) {
 								*invoked++
 
 								var device *packngo.Device
-								if opts != nil && contains(opts.Includes, "device") {
+								if opts != nil && internal.Contains(opts.Includes, "device") {
 									device = &packngo.Device{ID: response.id}
 								}
 								return &packngo.HardwareReservation{
@@ -114,7 +115,7 @@ func Test_waitUntilReservationProvisionable(t *testing.T) {
 								*invoked++
 
 								var device *packngo.Device
-								if opts != nil && contains(opts.Includes, "device") {
+								if opts != nil && internal.Contains(opts.Includes, "device") {
 									device = &packngo.Device{ID: response.id}
 								}
 								return &packngo.HardwareReservation{
@@ -150,8 +151,8 @@ func Test_waitUntilReservationProvisionable(t *testing.T) {
 	// timeout * number of tests that reach timeout must be less than 30s (default go test timeout).
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := waitUntilReservationProvisionable(context.Background(), tt.args.meta, tt.args.reservationId, tt.args.instanceId, 50*time.Millisecond, 1*time.Second, 50*time.Millisecond); (err != nil) != tt.wantErr {
-				t.Errorf("waitUntilReservationProvisionable() error = %v, wantErr %v", err, tt.wantErr)
+			if err := internal.WaitUntilReservationProvisionable(context.Background(), tt.args.meta, tt.args.reservationId, tt.args.instanceId, 50*time.Millisecond, 1*time.Second, 50*time.Millisecond); (err != nil) != tt.wantErr {
+				t.Errorf("WaitUntilReservationProvisionable() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

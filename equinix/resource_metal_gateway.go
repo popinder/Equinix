@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"time"
 
@@ -93,8 +94,8 @@ func resourceMetalGateway() *schema.Resource {
 }
 
 func resourceMetalGatewayCreate(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	_, hasIPReservation := d.GetOk("ip_reservation_id")
 	_, hasSubnetSize := d.GetOk("private_ipv4_subnet_size")
@@ -120,8 +121,8 @@ func resourceMetalGatewayCreate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceMetalGatewayRead(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	mgId := d.Id()
 	includes := &packngo.GetOptions{Includes: []string{"project", "ip_reservation", "virtual_network", "vrf"}}
@@ -152,11 +153,11 @@ func resourceMetalGatewayRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceMetalGatewayDelete(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 	resp, err := client.MetalGateways.Delete(d.Id())
-	if ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err) != nil {
-		return friendlyError(err)
+	if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err) != nil {
+		return internal.FriendlyError(err)
 	}
 
 	deleteWaiter := getGatewayStateWaiter(
@@ -168,7 +169,7 @@ func resourceMetalGatewayDelete(d *schema.ResourceData, meta interface{}) error 
 	)
 
 	_, err = deleteWaiter.WaitForState()
-	if ignoreResponseErrors(httpForbidden, httpNotFound)(nil, err) != nil {
+	if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(nil, err) != nil {
 		return fmt.Errorf("Error deleting Metal Gateway %s: %s", d.Id(), err)
 	}
 

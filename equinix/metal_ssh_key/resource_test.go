@@ -1,4 +1,4 @@
-package equinix
+package metal_ssh_key_test
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/equinix/terraform-provider-equinix/equinix/acceptance"
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -21,7 +23,7 @@ func init() {
 
 func testSweepSSHKeys(region string) error {
 	log.Printf("[DEBUG] Sweeping ssh keys")
-	config, err := sharedConfigForRegion(region)
+	config, err := acceptance.GetConfigForNonStandardMetalTest()
 	if err != nil {
 		return fmt.Errorf("[INFO][SWEEPER_LOG] Error getting configuration for sweeping ssh keys: %s", err)
 	}
@@ -32,7 +34,7 @@ func testSweepSSHKeys(region string) error {
 	}
 	ids := []string{}
 	for _, k := range sshkeys {
-		if isSweepableTestResource(k.Label) {
+		if acceptance.IsSweepableTestResource(k.Label) {
 			ids = append(ids, k.ID)
 		}
 	}
@@ -55,15 +57,14 @@ func TestAccMetalSSHKey_basic(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ExternalProviders: testExternalProviders,
-		Providers:         testAccProviders,
-		CheckDestroy:      testAccMetalSSHKeyCheckDestroyed,
+		PreCheck:     func() { acceptance.TestAccPreCheckMetal(t) },
+		Providers:    acceptance.TestAccProviders,
+		CheckDestroy: testAccMetalSSHKeyCheckDestroyed,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccMetalSSHKeyConfig_basic(rInt, publicKeyMaterial),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckMetalSSHKeyExists("equinix_metal_ssh_key.foobar", &key),
+					acceptance.TestAccCheckMetalSSHKeyExists("equinix_metal_ssh_key.foobar", &key),
 					resource.TestCheckResourceAttr(
 						"equinix_metal_ssh_key.foobar", "name", fmt.Sprintf("tfacc-user-key-%d", rInt)),
 					resource.TestCheckResourceAttr(
@@ -84,10 +85,9 @@ func TestAccMetalSSHKey_projectBasic(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ExternalProviders: testExternalProviders,
-		Providers:         testAccProviders,
-		CheckDestroy:      testAccMetalSSHKeyCheckDestroyed,
+		PreCheck:     func() { acceptance.TestAccPreCheckMetal(t) },
+		Providers:    acceptance.TestAccProviders,
+		CheckDestroy: testAccMetalSSHKeyCheckDestroyed,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMetalSSHKeyConfig_projectBasic(rInt, publicKeyMaterial),
@@ -111,15 +111,14 @@ func TestAccMetalSSHKey_update(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ExternalProviders: testExternalProviders,
-		Providers:         testAccProviders,
-		CheckDestroy:      testAccMetalSSHKeyCheckDestroyed,
+		PreCheck:     func() { acceptance.TestAccPreCheckMetal(t) },
+		Providers:    acceptance.TestAccProviders,
+		CheckDestroy: testAccMetalSSHKeyCheckDestroyed,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccMetalSSHKeyConfig_basic(rInt, publicKeyMaterial),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckMetalSSHKeyExists("equinix_metal_ssh_key.foobar", &key),
+					acceptance.TestAccCheckMetalSSHKeyExists("equinix_metal_ssh_key.foobar", &key),
 					resource.TestCheckResourceAttr(
 						"equinix_metal_ssh_key.foobar", "name", fmt.Sprintf("tfacc-user-key-%d", rInt)),
 					resource.TestCheckResourceAttr(
@@ -129,7 +128,7 @@ func TestAccMetalSSHKey_update(t *testing.T) {
 			{
 				Config: testAccMetalSSHKeyConfig_basic(rInt+1, publicKeyMaterial),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckMetalSSHKeyExists("equinix_metal_ssh_key.foobar", &key),
+					acceptance.TestAccCheckMetalSSHKeyExists("equinix_metal_ssh_key.foobar", &key),
 					resource.TestCheckResourceAttr(
 						"equinix_metal_ssh_key.foobar", "name", fmt.Sprintf("tfacc-user-key-%d", rInt+1)),
 					resource.TestCheckResourceAttr(
@@ -146,10 +145,9 @@ func TestAccMetalSSHKey_projectImportBasic(t *testing.T) {
 		t.Fatalf("Cannot generate test SSH key pair: %s", err)
 	}
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ExternalProviders: testExternalProviders,
-		Providers:         testAccProviders,
-		CheckDestroy:      testAccMetalSSHKeyCheckDestroyed,
+		PreCheck:     func() { acceptance.TestAccPreCheckMetal(t) },
+		Providers:    acceptance.TestAccProviders,
+		CheckDestroy: testAccMetalSSHKeyCheckDestroyed,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMetalSSHKeyConfig_projectBasic(acctest.RandInt(), sshKey),
@@ -169,10 +167,9 @@ func TestAccMetalSSHKey_importBasic(t *testing.T) {
 		t.Fatalf("Cannot generate test SSH key pair: %s", err)
 	}
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ExternalProviders: testExternalProviders,
-		Providers:         testAccProviders,
-		CheckDestroy:      testAccMetalSSHKeyCheckDestroyed,
+		PreCheck:     func() { acceptance.TestAccPreCheckMetal(t) },
+		Providers:    acceptance.TestAccProviders,
+		CheckDestroy: testAccMetalSSHKeyCheckDestroyed,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccMetalSSHKeyConfig_basic(acctest.RandInt(), sshKey),
@@ -185,47 +182,6 @@ func TestAccMetalSSHKey_importBasic(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccMetalSSHKeyCheckDestroyed(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config).metal
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "equinix_metal_ssh_key" {
-			continue
-		}
-		if _, _, err := client.SSHKeys.Get(rs.Primary.ID, nil); err == nil {
-			return fmt.Errorf("Metal SSH key still exists")
-		}
-	}
-
-	return nil
-}
-
-func testAccCheckMetalSSHKeyExists(n string, key *packngo.SSHKey) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("Not found: %s", n)
-		}
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No Record ID is set")
-		}
-
-		client := testAccProvider.Meta().(*Config).metal
-
-		foundKey, _, err := client.SSHKeys.Get(rs.Primary.ID, nil)
-		if err != nil {
-			return err
-		}
-		if foundKey.ID != rs.Primary.ID {
-			return fmt.Errorf("SSh Key not found: %v - %v", rs.Primary.ID, foundKey)
-		}
-
-		*key = *foundKey
-
-		return nil
-	}
 }
 
 func testAccMetalSSHKeyConfig_basic(rInt int, publicSshKey string) string {
@@ -248,4 +204,19 @@ resource "equinix_metal_project_ssh_key" "foobar" {
     public_key = "%s"
 	project_id = equinix_metal_project.test.id
 }`, rInt, rInt, publicSshKey)
+}
+
+func testAccMetalSSHKeyCheckDestroyed(s *terraform.State) error {
+	client := acceptance.TestAccProvider.Meta().(*internal.Config).Metal
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "equinix_metal_ssh_key" {
+			continue
+		}
+		if _, _, err := client.SSHKeys.Get(rs.Primary.ID, nil); err == nil {
+			return fmt.Errorf("Metal SSH key still exists")
+		}
+	}
+
+	return nil
 }

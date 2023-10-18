@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"log"
 	"testing"
@@ -133,7 +134,7 @@ func testAccCheckMetalVlanExists(n string, vlan *packngo.VirtualNetwork) resourc
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		client := testAccProvider.Meta().(*Config).metal
+		client := testAccProvider.Meta().(*internal.Config).Metal
 
 		foundVlan, _, err := client.ProjectVirtualNetworks.Get(rs.Primary.ID, nil)
 		if err != nil {
@@ -150,7 +151,7 @@ func testAccCheckMetalVlanExists(n string, vlan *packngo.VirtualNetwork) resourc
 }
 
 func testAccMetalVlanCheckDestroyed(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config).metal
+	client := testAccProvider.Meta().(*internal.Config).Metal
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "equinix_metal_vlan" {

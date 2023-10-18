@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"path"
 
@@ -104,7 +105,7 @@ func dataSourceMetalProject() *schema.Resource {
 }
 
 func dataSourceMetalProjectRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config).metal
+	client := meta.(*internal.Config).Metal
 	nameRaw, nameOK := d.GetOk("name")
 	projectIdRaw, projectIdOK := d.GetOk("project_id")
 
@@ -155,7 +156,7 @@ func dataSourceMetalProjectRead(d *schema.ResourceData, meta interface{}) error 
 		if bgpConf.ID != "" {
 			err := d.Set("bgp_config", flattenBGPConfig(bgpConf))
 			if err != nil {
-				err = friendlyError(err)
+				err = internal.FriendlyError(err)
 				return err
 			}
 		}

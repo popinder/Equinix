@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -47,8 +48,8 @@ func resourceMetalProjectAPIKey() *schema.Resource {
 }
 
 func resourceMetalAPIKeyCreate(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	projectId := ""
 
@@ -65,7 +66,7 @@ func resourceMetalAPIKeyCreate(d *schema.ResourceData, meta interface{}) error {
 
 	apiKey, _, err := client.APIKeys.Create(createRequest)
 	if err != nil {
-		return friendlyError(err)
+		return internal.FriendlyError(err)
 	}
 
 	d.SetId(apiKey.ID)
@@ -82,8 +83,8 @@ func projectIdFromResourceData(d *schema.ResourceData) string {
 }
 
 func resourceMetalAPIKeyRead(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	projectId := projectIdFromResourceData(d)
 
@@ -101,10 +102,10 @@ func resourceMetalAPIKeyRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if err != nil {
-		err = friendlyError(err)
+		err = internal.FriendlyError(err)
 		// If the key is somehow already destroyed, mark as
 		// succesfully gone
-		if isNotFound(err) {
+		if internal.IsNotFound(err) {
 			log.Printf("[WARN] Project APIKey (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
@@ -133,12 +134,12 @@ func resourceMetalAPIKeyRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceMetalAPIKeyDelete(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	resp, err := client.APIKeys.Delete(d.Id())
-	if ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err) != nil {
-		return friendlyError(err)
+	if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err) != nil {
+		return internal.FriendlyError(err)
 	}
 
 	d.SetId("")

@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 
@@ -74,8 +75,8 @@ func createNetworkSSHUserResourceSchema() map[string]*schema.Schema {
 }
 
 func resourceNetworkSSHUserCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 
 	var diags diag.Diagnostics
 	user := createNetworkSSHUser(d)
@@ -102,8 +103,8 @@ func resourceNetworkSSHUserCreate(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceNetworkSSHUserRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	user, err := client.GetSSHUser(d.Id())
 	if err != nil {
@@ -116,8 +117,8 @@ func resourceNetworkSSHUserRead(ctx context.Context, d *schema.ResourceData, m i
 }
 
 func resourceNetworkSSHUserUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	updateReq := client.NewSSHUserUpdateRequest(d.Id())
 	if v, ok := d.GetOk(networkSSHUserSchemaNames["Password"]); ok && d.HasChange(networkSSHUserSchemaNames["Password"]) {
@@ -125,8 +126,8 @@ func resourceNetworkSSHUserUpdate(ctx context.Context, d *schema.ResourceData, m
 	}
 	if d.HasChange(networkSSHUserSchemaNames["DeviceUUIDs"]) {
 		a, b := d.GetChange(networkSSHUserSchemaNames["DeviceUUIDs"])
-		aList := expandSetToStringList(a.(*schema.Set))
-		bList := expandSetToStringList(b.(*schema.Set))
+		aList := internal.ExpandSetToStringList(a.(*schema.Set))
+		bList := internal.ExpandSetToStringList(b.(*schema.Set))
 		updateReq.WithDeviceChange(aList, bList)
 	}
 	if err := updateReq.Execute(); err != nil {
@@ -137,8 +138,8 @@ func resourceNetworkSSHUserUpdate(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceNetworkSSHUserDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	if err := client.DeleteSSHUser(d.Id()); err != nil {
 		return diag.FromErr(err)
@@ -158,7 +159,7 @@ func createNetworkSSHUser(d *schema.ResourceData) ne.SSHUser {
 		user.Password = ne.String(v.(string))
 	}
 	if v, ok := d.GetOk(networkSSHUserSchemaNames["DeviceUUIDs"]); ok {
-		user.DeviceUUIDs = expandSetToStringList(v.(*schema.Set))
+		user.DeviceUUIDs = internal.ExpandSetToStringList(v.(*schema.Set))
 	}
 	return user
 }

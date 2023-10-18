@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 	"log"
@@ -49,7 +50,7 @@ func resourceMetalSpotMarketRequest() *schema.Resource {
 					if err != nil {
 						return false
 					}
-					// suppress diff if the difference between existing and new bid price
+					// suppress diff if the internal.Difference between existing and new bid price
 					// is less than 2%
 					diffThreshold := .02
 					priceDiff := oldF / newF
@@ -109,7 +110,7 @@ func resourceMetalSpotMarketRequest() *schema.Resource {
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"facilities"},
-				StateFunc:     toLower,
+				StateFunc:     internal.ToLower,
 			},
 			"instance_parameters": {
 				Type:        schema.TypeList,
@@ -213,8 +214,8 @@ func resourceMetalSpotMarketRequest() *schema.Resource {
 }
 
 func resourceMetalSpotMarketRequestCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 	var waitForDevices bool
 
 	metro := d.Get("metro").(string)
@@ -356,13 +357,13 @@ func resourceMetalSpotMarketRequestCreate(ctx context.Context, d *schema.Resourc
 }
 
 func resourceMetalSpotMarketRequestRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	smr, _, err := client.SpotMarketRequests.Get(d.Id(), &packngo.GetOptions{Includes: []string{"project", "devices", "facilities", "metro"}})
 	if err != nil {
-		err = friendlyError(err)
-		if isNotFound(err) {
+		err = internal.FriendlyError(err)
+		if internal.IsNotFound(err) {
 			log.Printf("[WARN] SpotMarketRequest (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
@@ -396,8 +397,8 @@ func resourceMetalSpotMarketRequestRead(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceMetalSpotMarketRequestDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 	var waitForDevices bool
 
 	if val, ok := d.GetOk("wait_for_devices"); ok {
@@ -426,19 +427,19 @@ func resourceMetalSpotMarketRequestDelete(ctx context.Context, d *schema.Resourc
 
 		for _, d := range smr.Devices {
 			resp, err := client.Devices.Delete(d.ID, true)
-			if ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err) != nil {
+			if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err) != nil {
 				return err
 			}
 		}
 	}
 	resp, err := client.SpotMarketRequests.Delete(d.Id(), true)
-	return ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err)
+	return internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err)
 }
 
 func resourceStateRefreshFunc(d *schema.ResourceData, meta interface{}) retry.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		meta.(*Config).addModuleToMetalUserAgent(d)
-		client := meta.(*Config).metal
+		meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+		client := meta.(*internal.Config).Metal
 
 		smr, _, err := client.SpotMarketRequests.Get(d.Id(), &packngo.GetOptions{Includes: []string{"project", "devices", "facilities", "metro"}})
 		if err != nil {

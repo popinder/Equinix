@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 	"strings"
@@ -81,13 +82,13 @@ func dataSourceNetworkDeviceType() *schema.Resource {
 }
 
 func dataSourceNetworkDeviceTypeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	conf := m.(*Config)
+	conf := m.(*internal.Config)
 	var diags diag.Diagnostics
-	types, err := conf.ne.GetDeviceTypes()
+	types, err := conf.Ne.GetDeviceTypes()
 	name := d.Get(networkDeviceTypeSchemaNames["Name"]).(string)
 	vendor := d.Get(networkDeviceTypeSchemaNames["Vendor"]).(string)
 	category := d.Get(networkDeviceTypeSchemaNames["Category"]).(string)
-	metroCodes := expandSetToStringList(d.Get(networkDeviceTypeSchemaNames["MetroCodes"]).(*schema.Set))
+	metroCodes := internal.ExpandSetToStringList(d.Get(networkDeviceTypeSchemaNames["MetroCodes"]).(*schema.Set))
 	if err != nil {
 		return diag.FromErr(err)
 	}

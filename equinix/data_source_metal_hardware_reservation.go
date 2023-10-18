@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -65,7 +66,7 @@ func dataSourceMetalHardwareReservation() *schema.Resource {
 }
 
 func dataSourceMetalHardwareReservationRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config).metal
+	client := meta.(*internal.Config).Metal
 	hrIdRaw, hrIdOk := d.GetOk("id")
 	dIdRaw, dIdOk := d.GetOk("device_id")
 

@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 
 	metalv1 "github.com/equinix-labs/metal-go/metal/v1"
@@ -106,7 +107,7 @@ func dataSourceMetalDeviceBGPNeighbors() *schema.Resource {
 }
 
 func dataSourceMetalDeviceBGPNeighborsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*Config).metalgo
+	client := meta.(*internal.Config).Metalgo
 	deviceID := d.Get("device_id").(string)
 
 	bgpNeighborsRaw, _, err := client.DevicesApi.GetBgpNeighborData(ctx, deviceID).Execute()

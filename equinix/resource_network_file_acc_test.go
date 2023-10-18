@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"testing"
 
@@ -65,7 +66,7 @@ func testAccNetworkFileExists(resourceName string, file *ne.File) resource.TestC
 		if !ok {
 			return fmt.Errorf("resource not found: %s", resourceName)
 		}
-		client := testAccProvider.Meta().(*Config).ne
+		client := testAccProvider.Meta().(*internal.Config).Ne
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource has no ID attribute set")
 		}

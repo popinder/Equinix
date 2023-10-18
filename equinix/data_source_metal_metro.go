@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -37,7 +38,7 @@ func dataSourceMetalMetro() *schema.Resource {
 }
 
 func dataSourceMetalMetroRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config).metal
+	client := meta.(*internal.Config).Metal
 	code := d.Get("code").(string)
 
 	_, capacityOk := d.GetOk("capacity")

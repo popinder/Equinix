@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"log"
 	"time"
@@ -14,10 +15,6 @@ Race conditions:
  - Bonding a bond port where underlying eth port has vlans assigned, and those vlans are being removed in the same terraform run
 */
 
-var (
-	l2Types = []string{"layer2-individual", "layer2-bonded"}
-	l3Types = []string{"layer3", "hybrid", "hybrid-bonded"}
-)
 
 func resourceMetalPort() *schema.Resource {
 	return &schema.Resource{
@@ -119,23 +116,23 @@ func resourceMetalPort() *schema.Resource {
 
 func resourceMetalPortUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
 	start := time.Now()
-	cpr, _, err := getClientPortResource(d, meta)
+	cpr, _, err := internal.GetClientPortResource(d, meta)
 	if err != nil {
-		return friendlyError(err)
+		return internal.FriendlyError(err)
 	}
 
-	for _, f := range [](func(*ClientPortResource) error){
-		portSanityChecks,
-		batchVlans(ctx, start, true),
-		makeDisbond,
-		convertToL2,
-		makeBond,
-		convertToL3,
-		batchVlans(ctx, start, false),
-		updateNativeVlan,
+	for _, f := range [](func(*internal.ClientPortResource) error){
+		internal.PortSanityChecks,
+		internal.BatchVlans(ctx, start, true),
+		internal.MakeDisbond,
+		internal.ConvertToL2,
+		internal.MakeBond,
+		internal.ConvertToL3,
+		internal.BatchVlans(ctx, start, false),
+		internal.UpdateNativeVlan,
 	} {
 		if err := f(cpr); err != nil {
-			return friendlyError(err)
+			return internal.FriendlyError(err)
 		}
 	}
 
@@ -143,12 +140,12 @@ func resourceMetalPortUpdate(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func resourceMetalPortRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
-	port, err := getPortByResourceData(d, client)
+	port, err := internal.GetPortByResourceData(d, client)
 	if err != nil {
-		if isNotFound(err) || isForbidden(err) {
+		if internal.IsNotFound(err) || internal.IsForbidden(err) {
 			log.Printf("[WARN] Port (%s) not accessible, removing from state", d.Id())
 			d.SetId("")
 
@@ -165,8 +162,8 @@ func resourceMetalPortRead(ctx context.Context, d *schema.ResourceData, meta int
 		"bonded":            port.Data.Bonded,
 		"disbond_supported": port.DisbondOperationSupported,
 	}
-	l2 := contains(l2Types, port.NetworkType)
-	l3 := contains(l3Types, port.NetworkType)
+	l2 := internal.Contains(internal.L2Types, port.NetworkType)
+	l3 := internal.Contains(internal.L3Types, port.NetworkType)
 
 	if l2 {
 		m["layer2"] = true
@@ -201,8 +198,8 @@ func resourceMetalPortDelete(ctx context.Context, d *schema.ResourceData, meta i
 	resetRaw, resetOk := d.GetOk("reset_on_delete")
 	if resetOk && resetRaw.(bool) {
 		start := time.Now()
-		cpr, resp, err := getClientPortResource(d, meta)
-		if ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err) != nil {
+		cpr, resp, err := internal.GetClientPortResource(d, meta)
+		if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err) != nil {
 			return err
 		}
 
@@ -221,17 +218,17 @@ func resourceMetalPortDelete(ctx context.Context, d *schema.ResourceData, meta i
 		}); err != nil {
 			return err
 		}
-		for _, f := range [](func(*ClientPortResource) error){
-			batchVlans(ctx, start, true),
-			makeBond,
-			convertToL3,
+		for _, f := range [](func(*internal.ClientPortResource) error){
+			internal.BatchVlans(ctx, start, true),
+			internal.MakeBond,
+			internal.ConvertToL3,
 		} {
 			if err := f(cpr); err != nil {
 				return err
 			}
 		}
 		// TODO(displague) error or warn?
-		if warn := portProperlyDestroyed(cpr.Port); warn != nil {
+		if warn := internal.PortProperlyDestroyed(cpr.Port); warn != nil {
 			log.Printf("[WARN] %s\n", warn)
 		}
 	}

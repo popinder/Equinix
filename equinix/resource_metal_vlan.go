@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"errors"
 	"path"
 
@@ -62,7 +63,7 @@ func resourceMetalVlan() *schema.Resource {
 					}
 					return old == new
 				},
-				StateFunc: toLower,
+				StateFunc: internal.ToLower,
 			},
 			"vxlan": {
 				Type:        schema.TypeInt,
@@ -76,18 +77,18 @@ func resourceMetalVlan() *schema.Resource {
 }
 
 func resourceMetalVlanCreate(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	facRaw, facOk := d.GetOk("facility")
 	metroRaw, metroOk := d.GetOk("metro")
 	vxlanRaw, vxlanOk := d.GetOk("vxlan")
 
 	if !facOk && !metroOk {
-		return friendlyError(errors.New("one of facility or metro must be configured"))
+		return internal.FriendlyError(errors.New("one of facility or metro must be configured"))
 	}
 	if facOk && vxlanOk {
-		return friendlyError(errors.New("you can set vxlan only for metro vlans"))
+		return internal.FriendlyError(errors.New("you can set vxlan only for metro vlans"))
 	}
 
 	createRequest := &packngo.VirtualNetworkCreateRequest{
@@ -103,21 +104,21 @@ func resourceMetalVlanCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 	vlan, _, err := client.ProjectVirtualNetworks.Create(createRequest)
 	if err != nil {
-		return friendlyError(err)
+		return internal.FriendlyError(err)
 	}
 	d.SetId(vlan.ID)
 	return resourceMetalVlanRead(d, meta)
 }
 
 func resourceMetalVlanRead(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	vlan, _, err := client.ProjectVirtualNetworks.Get(d.Id(),
 		&packngo.GetOptions{Includes: []string{"assigned_to"}})
 	if err != nil {
-		err = friendlyError(err)
-		if isNotFound(err) {
+		err = internal.FriendlyError(err)
+		if internal.IsNotFound(err) {
 			d.SetId("")
 			return nil
 		}
@@ -133,13 +134,13 @@ func resourceMetalVlanRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceMetalVlanDelete(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	id := d.Id()
 	vlan, resp, err := client.ProjectVirtualNetworks.Get(id, &packngo.GetOptions{Includes: []string{"instances", "instances.network_ports.virtual_networks", "internet_gateway"}})
-	if ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err) != nil {
-		return friendlyError(err)
+	if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err) != nil {
+		return internal.FriendlyError(err)
 	} else if err != nil {
 		// missing vlans are deleted
 		return nil
@@ -156,8 +157,8 @@ func resourceMetalVlanDelete(d *schema.ResourceData, meta interface{}) error {
 				if aID == id {
 					_, resp, err := client.Ports.Unassign(p.ID, id)
 
-					if ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err) != nil {
-						return friendlyError(err)
+					if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err) != nil {
+						return internal.FriendlyError(err)
 					}
 				}
 			}
@@ -166,5 +167,5 @@ func resourceMetalVlanDelete(d *schema.ResourceData, meta interface{}) error {
 
 	// TODO(displague) do we need to unassign gateway connections before delete?
 
-	return friendlyError(ignoreResponseErrors(httpForbidden, httpNotFound)(client.ProjectVirtualNetworks.Delete(id)))
+	return internal.FriendlyError(internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(client.ProjectVirtualNetworks.Delete(id)))
 }

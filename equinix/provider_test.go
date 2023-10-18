@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"net/http"
 	"os"
@@ -160,7 +161,7 @@ func TestProvider_hasApplicationErrorCode(t *testing.T) {
 	// when
 	result := hasApplicationErrorCode(errors, code)
 	// then
-	assert.True(t, result, "Error list contains error with given code")
+	assert.True(t, result, "Error list internal.Contains error with given code")
 }
 
 func TestProvider_stringsFound(t *testing.T) {
@@ -378,7 +379,7 @@ func TestProvider_schemaSetToMap(t *testing.T) {
 	}
 	setFunc := func(v interface{}) int {
 		i := v.(item)
-		return hashcodeString(i.id)
+		return internal.HashcodeString(i.id)
 	}
 	items := []interface{}{
 		item{"id1", 100, 200},
@@ -401,20 +402,20 @@ func TestProvider_schemaSetToMap(t *testing.T) {
 func testAccPreCheck(t *testing.T) {
 	var err error
 
-	if _, err = getFromEnv(clientTokenEnvVar); err != nil {
-		_, err = getFromEnv(clientIDEnvVar)
+	if _, err = getFromEnv(ClientTokenEnvVar); err != nil {
+		_, err = getFromEnv(ClientIDEnvVar)
 		if err == nil {
-			_, err = getFromEnv(clientSecretEnvVar)
+			_, err = getFromEnv(ClientSecretEnvVar)
 		}
 	}
 
 	if err == nil {
-		_, err = getFromEnv(metalAuthTokenEnvVar)
+		_, err = getFromEnv(MetalAuthTokenEnvVar)
 	}
 
 	if err != nil {
 		t.Fatalf("To run acceptance tests, one of '%s' or pair '%s' - '%s' must be set for Equinix Fabric and Network Edge, and '%s' for Equinix Metal",
-			clientTokenEnvVar, clientIDEnvVar, clientSecretEnvVar, metalAuthTokenEnvVar)
+			ClientTokenEnvVar, ClientIDEnvVar, ClientSecretEnvVar, MetalAuthTokenEnvVar)
 	}
 }
 

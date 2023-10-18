@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -42,7 +43,7 @@ func dataSourceMetalVlan() *schema.Resource {
 				Computed:      true,
 				ConflictsWith: []string{"vlan_id", "facility"},
 				Description:   "Metro where the VLAN is deployed",
-				StateFunc:     toLower,
+				StateFunc:     internal.ToLower,
 			},
 			"vlan_id": {
 				Type:          schema.TypeString,
@@ -67,7 +68,7 @@ func dataSourceMetalVlan() *schema.Resource {
 }
 
 func dataSourceMetalVlanRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config).metal
+	client := meta.(*internal.Config).Metal
 
 	projectRaw, projectOk := d.GetOk("project_id")
 	vxlanRaw, vxlanOk := d.GetOk("vxlan")
@@ -76,7 +77,7 @@ func dataSourceMetalVlanRead(d *schema.ResourceData, meta interface{}) error {
 	facilityRaw, facilityOk := d.GetOk("facility")
 
 	if !(vlanIdOk || (vxlanOk || projectOk || metroOk || facilityOk)) {
-		return friendlyError(fmt.Errorf("You must set either vlan_id or a combination of vxlan, project_id, and, metro or facility"))
+		return internal.FriendlyError(fmt.Errorf("You must set either vlan_id or a combination of vxlan, project_id, and, metro or facility"))
 	}
 
 	var vlan *packngo.VirtualNetwork
@@ -88,7 +89,7 @@ func dataSourceMetalVlanRead(d *schema.ResourceData, meta interface{}) error {
 			&packngo.GetOptions{Includes: []string{"assigned_to"}},
 		)
 		if err != nil {
-			return friendlyError(err)
+			return internal.FriendlyError(err)
 		}
 
 	} else {
@@ -101,12 +102,12 @@ func dataSourceMetalVlanRead(d *schema.ResourceData, meta interface{}) error {
 			&packngo.GetOptions{Includes: []string{"assigned_to"}},
 		)
 		if err != nil {
-			return friendlyError(err)
+			return internal.FriendlyError(err)
 		}
 
 		vlan, err = matchingVlan(vlans.VirtualNetworks, vxlan, projectID, facility, metro)
 		if err != nil {
-			return friendlyError(err)
+			return internal.FriendlyError(err)
 		}
 	}
 
@@ -142,11 +143,11 @@ func matchingVlan(vlans []packngo.VirtualNetwork, vxlan int, projectID, facility
 		matches = append(matches, v)
 	}
 	if len(matches) > 1 {
-		return nil, friendlyError(fmt.Errorf("Project %s has more than one matching VLAN", projectID))
+		return nil, internal.FriendlyError(fmt.Errorf("Project %s has more than one matching VLAN", projectID))
 	}
 
 	if len(matches) == 0 {
-		return nil, friendlyError(fmt.Errorf("Project %s does not have matching VLANs", projectID))
+		return nil, internal.FriendlyError(fmt.Errorf("Project %s does not have matching VLANs", projectID))
 	}
 	return &matches[0], nil
 }

@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"testing"
 
@@ -44,7 +45,7 @@ resource "equinix_metal_project_api_key" "test" {
 }
 
 func testAccMetalProjectAPIKeyCheckDestroyed(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config).metal
+	client := testAccProvider.Meta().(*internal.Config).Metal
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "equinix_metal_project_api_key" {
 			continue

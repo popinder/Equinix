@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"net"
 	"strings"
@@ -119,7 +120,7 @@ func dataSourceMetalReservedIPBlock() *schema.Resource {
 }
 
 func dataSourceMetalReservedIPBlockRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config).metal
+	client := meta.(*internal.Config).Metal
 
 	blockId, blockIdOk := d.GetOk("id")
 	projectId, projectIdOk := d.GetOk("project_id")

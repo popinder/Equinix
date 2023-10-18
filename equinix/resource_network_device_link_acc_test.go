@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 	"log"
@@ -28,7 +29,7 @@ func testSweepNetworkDeviceLink(region string) error {
 		log.Printf("[INFO][SWEEPER_LOG] error loading configuration: %s", err)
 		return err
 	}
-	links, err := config.ne.GetDeviceLinkGroups()
+	links, err := config.Ne.GetDeviceLinkGroups()
 	if err != nil {
 		log.Printf("[INFO][SWEEPER_LOG] error fetching device links list: %s", err)
 		return err
@@ -39,7 +40,7 @@ func testSweepNetworkDeviceLink(region string) error {
 			nonSweepableCount++
 			continue
 		}
-		if err := config.ne.DeleteDeviceLinkGroup(ne.StringValue(link.UUID)); err != nil {
+		if err := config.Ne.DeleteDeviceLinkGroup(ne.StringValue(link.UUID)); err != nil {
 			log.Printf("[INFO][SWEEPER_LOG] error deleting NetworkDeviceLink resource %s (%s): %s", ne.StringValue(link.UUID), ne.StringValue(link.Name), err)
 		} else {
 			log.Printf("[INFO][SWEEPER_LOG] sent delete request for NetworkDeviceLink resource %s (%s)", ne.StringValue(link.UUID), ne.StringValue(link.Name))
@@ -157,7 +158,7 @@ func testAccNeDeviceLinkExists(resourceName string, deviceLink *ne.DeviceLinkGro
 		if !ok {
 			return fmt.Errorf("resource not found: %s", resourceName)
 		}
-		client := testAccProvider.Meta().(*Config).ne
+		client := testAccProvider.Meta().(*internal.Config).Ne
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource has no ID attribute set")
 		}

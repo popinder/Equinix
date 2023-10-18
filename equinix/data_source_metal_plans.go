@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 
 	"github.com/equinix/terraform-provider-equinix/equinix/internal/datalist"
@@ -21,7 +22,7 @@ func dataSourceMetalPlans() *schema.Resource {
 }
 
 func getPlans(meta interface{}, extra map[string]interface{}) ([]interface{}, error) {
-	client := meta.(*Config).metal
+	client := meta.(*internal.Config).Metal
 	opts := &packngo.ListOptions{
 		Includes: []string{"available_in", "available_in_metros"},
 	}
@@ -106,10 +107,10 @@ func flattenPlan(rawPlan interface{}, meta interface{}, extra map[string]interfa
 		metros = append(metros, m.Code)
 	}
 
-	flattenedFacs := schema.NewSet(schema.HashString, stringArrToIfArr(facs))
-	flattenedMetros := schema.NewSet(schema.HashString, stringArrToIfArr(metros))
+	flattenedFacs := schema.NewSet(schema.HashString, internal.StringArrToIfArr(facs))
+	flattenedMetros := schema.NewSet(schema.HashString, internal.StringArrToIfArr(metros))
 	flattenedDepTypes := schema.NewSet(schema.HashString,
-		stringArrToIfArr(plan.DeploymentTypes))
+		internal.StringArrToIfArr(plan.DeploymentTypes))
 
 	flattenedPlan := map[string]interface{}{
 		"id":                  plan.ID,

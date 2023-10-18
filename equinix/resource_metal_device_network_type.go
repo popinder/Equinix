@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -71,8 +72,8 @@ func getAndPossiblySetNetworkType(d *schema.ResourceData, c *packngo.Client, tar
 }
 
 func resourceMetalDeviceNetworkTypeCreate(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	ntype := d.Get("type").(string)
 	err := getAndPossiblySetNetworkType(d, client, ntype)
@@ -84,14 +85,14 @@ func resourceMetalDeviceNetworkTypeCreate(d *schema.ResourceData, meta interface
 }
 
 func resourceMetalDeviceNetworkTypeRead(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	_, devNType, err := getDevIDandNetworkType(d, client)
 	if err != nil {
-		err = friendlyError(err)
+		err = internal.FriendlyError(err)
 
-		if isNotFound(err) {
+		if internal.IsNotFound(err) {
 			log.Printf("[WARN] Device (%s) for Network Type request not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
@@ -113,8 +114,8 @@ func resourceMetalDeviceNetworkTypeRead(d *schema.ResourceData, meta interface{}
 }
 
 func resourceMetalDeviceNetworkTypeUpdate(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	ntype := d.Get("type").(string)
 	if d.HasChange("type") {

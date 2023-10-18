@@ -1,4 +1,4 @@
-package equinix
+package internal
 
 import (
 	"context"
@@ -47,11 +47,11 @@ func ifToIPCreateRequest(m interface{}) packngo.IPAddressCreateRequest {
 		iacr.Public = true
 	}
 	iacr.CIDR = ia["cidr"].(int)
-	iacr.Reservations = convertStringArr(ia["reservation_ids"].([]interface{}))
+	iacr.Reservations = ConvertStringArr(ia["reservation_ids"].([]interface{}))
 	return iacr
 }
 
-func getNewIPAddressSlice(arr []interface{}) []packngo.IPAddressCreateRequest {
+func GetNewIPAddressSlice(arr []interface{}) []packngo.IPAddressCreateRequest {
 	addressTypesSlice := make([]packngo.IPAddressCreateRequest, len(arr))
 
 	for i, m := range arr {
@@ -69,7 +69,7 @@ type NetworkInfo struct {
 	PrivateIPv4    string
 }
 
-func getNetworkInfo(ips []metalv1.IPAssignment) NetworkInfo {
+func GetNetworkInfo(ips []metalv1.IPAssignment) NetworkInfo {
 	ni := NetworkInfo{Networks: make([]map[string]interface{}, 0, 1)}
 	for _, ip := range ips {
 		network := map[string]interface{}{
@@ -99,7 +99,7 @@ func getNetworkInfo(ips []metalv1.IPAssignment) NetworkInfo {
 	return ni
 }
 
-func getNetworkType(device *metalv1.Device) (*string, error) {
+func GetNetworkType(device *metalv1.Device) (*string, error) {
 	pgDevice := packngo.Device{}
 	res, err := device.MarshalJSON()
 	if err == nil {
@@ -111,7 +111,7 @@ func getNetworkType(device *metalv1.Device) (*string, error) {
 	return nil, err
 }
 
-func getNetworkRank(family int, public bool) int {
+func GetNetworkRank(family int, public bool) int {
 	switch {
 	case family == 4 && public:
 		return 0
@@ -123,15 +123,15 @@ func getNetworkRank(family int, public bool) int {
 	return 3
 }
 
-func getPorts(ps []metalv1.Port) []map[string]interface{} {
+func GetPorts(ps []metalv1.Port) []map[string]interface{} {
 	ret := make([]map[string]interface{}, 0, 1)
 	for _, p := range ps {
 		port := map[string]interface{}{
-			"name":   p.GetName(),
-			"id":     p.GetId(),
-			"type":   p.GetType(),
-			"mac":    p.Data.GetMac(),
-			"bonded": p.Data.GetBonded(),
+			"name":   p.Name,
+			"id":     p.Id,
+			"type":   p.Type,
+			"mac":    p.Data.Mac,
+			"bonded": p.Data.Bonded,
 		}
 		ret = append(ret, port)
 	}
@@ -144,7 +144,7 @@ func hwReservationStateRefreshFunc(client *packngo.Client, reservationId, instan
 		state := deprovisioning
 		switch {
 		case err != nil:
-			err = friendlyError(err)
+			err = FriendlyError(err)
 			state = errstate
 		case r != nil && r.Provisionable:
 			state = provisionable
@@ -159,7 +159,7 @@ func hwReservationStateRefreshFunc(client *packngo.Client, reservationId, instan
 	}
 }
 
-func waitUntilReservationProvisionable(ctx context.Context, client *packngo.Client, reservationId, instanceId string, delay, timeout, minTimeout time.Duration) error {
+func WaitUntilReservationProvisionable(ctx context.Context, client *packngo.Client, reservationId, instanceId string, delay, timeout, minTimeout time.Duration) error {
 	stateConf := &retry.StateChangeConf{
 		Pending:    []string{deprovisioning},
 		Target:     []string{provisionable, reprovisioned},
@@ -183,7 +183,7 @@ func getWaitForDeviceLock(deviceID string) *sync.WaitGroup {
 	return wg
 }
 
-func waitForDeviceAttribute(ctx context.Context, d *schema.ResourceData, stateConf *retry.StateChangeConf) (string, error) {
+func WaitForDeviceAttribute(ctx context.Context, d *schema.ResourceData, stateConf *retry.StateChangeConf) (string, error) {
 	wg := getWaitForDeviceLock(d.Id())
 	wg.Wait()
 
@@ -210,14 +210,14 @@ func waitForDeviceAttribute(ctx context.Context, d *schema.ResourceData, stateCo
 	return "", err
 }
 
-func ipAddressSchema() *schema.Resource {
+func IpAddressSchema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"type": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice(ipAddressTypes, false),
-				Description:  fmt.Sprintf("one of %s", strings.Join(ipAddressTypes, ",")),
+				ValidateFunc: validation.StringInSlice(IpAddressTypes, false),
+				Description:  fmt.Sprintf("one of %s", strings.Join(IpAddressTypes, ",")),
 			},
 			"cidr": {
 				Type:        schema.TypeInt,
@@ -231,27 +231,27 @@ func ipAddressSchema() *schema.Resource {
 				MinItems:    1,
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
-					ValidateFunc: validation.StringMatch(uuidRE, "must be a valid UUID"),
+					ValidateFunc: validation.StringMatch(UuidRE, "must be a valid UUID"),
 				},
 			},
 		},
 	}
 }
 
-func getDeviceMap(device metalv1.Device) map[string]interface{} {
-	networkInfo := getNetworkInfo(device.IpAddresses)
+func GetDeviceMap(device metalv1.Device) map[string]interface{} {
+	networkInfo := GetNetworkInfo(device.IpAddresses)
 	sort.SliceStable(networkInfo.Networks, func(i, j int) bool {
-		famI := int(networkInfo.Networks[i]["family"].(int32))
-		famJ := int(networkInfo.Networks[j]["family"].(int32))
-		pubI := networkInfo.Networks[i]["public"].(bool)
-		pubJ := networkInfo.Networks[j]["public"].(bool)
-		return getNetworkRank(famI, pubI) < getNetworkRank(famJ, pubJ)
+		famI := int(*networkInfo.Networks[i]["family"].(*int32))
+		famJ := int(*networkInfo.Networks[j]["family"].(*int32))
+		pubI := *networkInfo.Networks[i]["public"].(*bool)
+		pubJ := *networkInfo.Networks[j]["public"].(*bool)
+		return GetNetworkRank(famI, pubI) < GetNetworkRank(famJ, pubJ)
 	})
 	keyIDs := []string{}
 	for _, k := range device.SshKeys {
 		keyIDs = append(keyIDs, path.Base(k.GetHref()))
 	}
-	ports := getPorts(device.NetworkPorts)
+	ports := GetPorts(device.NetworkPorts)
 
 	return map[string]interface{}{
 		"hostname":            device.GetHostname(),
@@ -267,7 +267,7 @@ func getDeviceMap(device metalv1.Device) map[string]interface{} {
 		"ipxe_script_url":     device.GetIpxeScriptUrl(),
 		"always_pxe":          device.GetAlwaysPxe(),
 		"root_password":       device.GetRootPassword(),
-		"tags":                stringArrToIfArr(device.GetTags()),
+		"tags":                StringArrToIfArr(device.GetTags()),
 		"access_public_ipv6":  networkInfo.PublicIPv6,
 		"access_public_ipv4":  networkInfo.PublicIPv4,
 		"access_private_ipv4": networkInfo.PrivateIPv4,

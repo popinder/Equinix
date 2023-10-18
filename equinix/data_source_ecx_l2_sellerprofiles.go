@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 	"regexp"
@@ -87,16 +88,16 @@ func dataSourceECXL2SellerProfiles() *schema.Resource {
 }
 
 func dataSourceECXL2SellerProfilesRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	conf := m.(*Config)
+	conf := m.(*internal.Config)
 	var diags diag.Diagnostics
-	profiles, err := conf.ecx.GetL2SellerProfiles()
+	profiles, err := conf.Ecx.GetL2SellerProfiles()
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	var filteredProfiles []ecx.L2ServiceProfile
 	nameRegex := d.Get(ecxL2SellerProfilesSchemaNames["NameRegex"]).(string)
-	metros := expandSetToStringList(d.Get(ecxL2SellerProfilesSchemaNames["Metros"]).(*schema.Set))
-	speedBands := expandSetToStringList(d.Get(ecxL2SellerProfilesSchemaNames["SpeedBands"]).(*schema.Set))
+	metros := internal.ExpandSetToStringList(d.Get(ecxL2SellerProfilesSchemaNames["Metros"]).(*schema.Set))
+	speedBands := internal.ExpandSetToStringList(d.Get(ecxL2SellerProfilesSchemaNames["SpeedBands"]).(*schema.Set))
 	orgName := d.Get(ecxL2SellerProfilesSchemaNames["OrganizationName"]).(string)
 	globalOrgName := d.Get(ecxL2SellerProfilesSchemaNames["GlobalOrganization"]).(string)
 	for _, profile := range profiles {

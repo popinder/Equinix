@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 	"time"
@@ -220,8 +221,8 @@ func createNetworkDeviceLinkConnectionResourceSchema() map[string]*schema.Schema
 }
 
 func resourceNetworkDeviceLinkCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	link := createNetworkDeviceLink(d)
 	uuid, err := client.CreateDeviceLinkGroup(link)
@@ -242,8 +243,8 @@ func resourceNetworkDeviceLinkCreate(ctx context.Context, d *schema.ResourceData
 }
 
 func resourceNetworkDeviceLinkRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	link, err := client.GetDeviceLinkGroup(d.Id())
 	if err != nil {
@@ -266,8 +267,8 @@ func resourceNetworkDeviceLinkRead(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceNetworkDeviceLinkUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	changes := getResourceDataChangedKeys([]string{
 		networkDeviceLinkSchemaNames["Name"], networkDeviceLinkSchemaNames["Subnet"],
@@ -304,8 +305,8 @@ func resourceNetworkDeviceLinkUpdate(ctx context.Context, d *schema.ResourceData
 }
 
 func resourceNetworkDeviceLinkDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	if err := client.DeleteDeviceLinkGroup(d.Id()); err != nil {
 		if isRestNotFoundError(err) {
@@ -489,7 +490,7 @@ func networkDeviceLinkDeviceKey(v interface{}) string {
 }
 
 func networkDeviceLinkDeviceHash(v interface{}) int {
-	return hashcodeString(networkDeviceLinkDeviceKey(v))
+	return internal.HashcodeString(networkDeviceLinkDeviceKey(v))
 }
 
 func networkDeviceLinkConnectionKey(v interface{}) string {
@@ -511,5 +512,5 @@ func networkDeviceLinkConnectionKey(v interface{}) string {
 }
 
 func networkDeviceLinkConnectionHash(v interface{}) int {
-	return hashcodeString(networkDeviceLinkConnectionKey(v))
+	return internal.HashcodeString(networkDeviceLinkConnectionKey(v))
 }

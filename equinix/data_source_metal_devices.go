@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 
@@ -50,7 +51,7 @@ func dataSourceMetalDevices() *schema.Resource {
 }
 
 func getDevices(meta interface{}, extra map[string]interface{}) ([]interface{}, error) {
-	client := meta.(*Config).metalgo
+	client := meta.(*internal.Config).Metalgo
 	projectID := extra["project_id"].(string)
 	orgID := extra["organization_id"].(string)
 
@@ -93,5 +94,5 @@ func flattenDevice(rawDevice interface{}, meta interface{}, extra map[string]int
 	if !ok {
 		return nil, fmt.Errorf("expected device to be of type *metalv1.Device, got %T", rawDevice)
 	}
-	return getDeviceMap(device), nil
+	return internal.GetDeviceMap(device), nil
 }

@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"regexp"
 	"testing"
@@ -354,7 +355,7 @@ func TestAccMetalPort_hybridBonded(t *testing.T) {
 }
 
 func testAccMetalPortDestroyed(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config).metal
+	client := testAccProvider.Meta().(*internal.Config).Metal
 
 	port_ids := []string{}
 
@@ -371,7 +372,7 @@ func testAccMetalPortDestroyed(s *terraform.State) error {
 		if err != nil {
 			return fmt.Errorf("Error getting port %s during destroy check", pid)
 		}
-		err = portProperlyDestroyed(p)
+		err = internal.PortProperlyDestroyed(p)
 		if err != nil {
 			return err
 		}
@@ -391,8 +392,8 @@ func testAccWaitForPortActive(deviceName, portName string) resource.ImportStateI
 
 		meta := testAccProvider.Meta()
 		rd := new(schema.ResourceData)
-		meta.(*Config).addModuleToMetalUserAgent(rd)
-		client := meta.(*Config).metal
+		meta.(*internal.Config).AddModuleToMetalUserAgent(rd)
+		client := meta.(*internal.Config).Metal
 		device, _, err := client.Devices.Get(rs.Primary.ID, &packngo.GetOptions{Includes: []string{"ports"}})
 		if err != nil {
 			return "", fmt.Errorf("error while fetching device with Id [%s], error: %w", rs.Primary.ID, err)

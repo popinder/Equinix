@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"bytes"
 	"fmt"
 	"regexp"
@@ -210,7 +211,7 @@ func TestAccMetalReservedIPBlock_importBasic(t *testing.T) {
 }
 
 func testAccMetalReservedIPBlockCheckDestroyed(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config).metal
+	client := testAccProvider.Meta().(*internal.Config).Metal
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "equinix_metal_reserved_ip_block" {

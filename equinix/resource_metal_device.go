@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"encoding/json"
 	"errors"
@@ -87,14 +88,14 @@ func resourceMetalDevice() *schema.Resource {
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					if len(old) > 0 && new == "" {
 						// here it would be good to also test if the "old" metro
-						// contains the device facility. If yes, we'd suppress diff
+						// internal.Contains the device facility. If yes, we'd suppress diff
 						// and if it's a different metro, we would re-create.
 						// Not sure if this is possible.
 						return true
 					}
 					return old == new
 				},
-				StateFunc: toLower,
+				StateFunc: internal.ToLower,
 			},
 			"facilities": {
 				Type:        schema.TypeList,
@@ -106,12 +107,12 @@ func resourceMetalDevice() *schema.Resource {
 				MinItems:    1,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					fsRaw := d.Get("facilities")
-					fs := convertStringArr(fsRaw.([]interface{}))
+					fs := internal.ConvertStringArr(fsRaw.([]interface{}))
 					df := d.Get("deployed_facility").(string)
-					if contains(fs, df) {
+					if internal.Contains(fs, df) {
 						return true
 					}
-					if contains(fs, "any") && (len(df) != 0) {
+					if internal.Contains(fs, "any") && (len(df) != 0) {
 						return true
 					}
 					return false
@@ -122,7 +123,7 @@ func resourceMetalDevice() *schema.Resource {
 				Type:        schema.TypeList,
 				Description: "A list of IP address types for the device (structure is documented below)",
 				Optional:    true,
-				Elem:        ipAddressSchema(),
+				Elem:        internal.IpAddressSchema(),
 				MinItems:    1,
 			},
 			"plan": {
@@ -397,7 +398,7 @@ func resourceMetalDevice() *schema.Resource {
 								ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
 									attribute := val.(string)
 									supportedAttributes := []string{"custom_data", "user_data"}
-									if !contains(supportedAttributes, attribute) {
+									if !internal.Contains(supportedAttributes, attribute) {
 										errs = []error{fmt.Errorf("behavior.allow_changes was given %s, but only supports %v", attribute, supportedAttributes)}
 									}
 									return
@@ -459,11 +460,11 @@ func reinstallDisabledAndNoChangesAllowed(attribute string) customdiff.ResourceC
 			behavior_list := behavior.([]interface{})
 			behavior_config := behavior_list[0].(map[string]interface{})
 
-			allow_changes := convertStringArr(behavior_config["allow_changes"].([]interface{}))
+			allow_changes := internal.ConvertStringArr(behavior_config["allow_changes"].([]interface{}))
 
 			// This means we got a valid behavior specification, so we set ForceNew
 			// to true if behavior.allow_changes includes the attribute that is changing
-			return !contains(allow_changes, attribute)
+			return !internal.Contains(allow_changes, attribute)
 		}
 
 		// This means reinstall is enabled, so it doesn't matter what the behavior
@@ -473,14 +474,14 @@ func reinstallDisabledAndNoChangesAllowed(attribute string) customdiff.ResourceC
 }
 
 func resourceMetalDeviceCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	var addressTypesSlice []packngo.IPAddressCreateRequest
 	_, ok := d.GetOk("ip_address")
 	if ok {
 		arr := d.Get("ip_address").([]interface{})
-		addressTypesSlice = getNewIPAddressSlice(arr)
+		addressTypesSlice = internal.GetNewIPAddressSlice(arr)
 	}
 
 	createRequest := &packngo.DeviceCreateRequest{
@@ -500,7 +501,7 @@ func resourceMetalDeviceCreate(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	if facsOk {
-		createRequest.Facility = convertStringArr(facsRaw.([]interface{}))
+		createRequest.Facility = internal.ConvertStringArr(facsRaw.([]interface{}))
 	}
 
 	if metroOk {
@@ -532,13 +533,13 @@ func resourceMetalDeviceCreate(ctx context.Context, d *schema.ResourceData, meta
 	} else {
 		wfrd := "wait_for_reservation_deprovision"
 		if d.Get(wfrd).(bool) {
-			return friendlyError(fmt.Errorf("You can't set %s when not using a hardware reservation", wfrd))
+			return internal.FriendlyError(fmt.Errorf("You can't set %s when not using a hardware reservation", wfrd))
 		}
 	}
 
 	if createRequest.OS == "custom_ipxe" {
 		if createRequest.IPXEScriptURL == "" && createRequest.UserData == "" {
-			return friendlyError(errors.New("\"ipxe_script_url\" or \"user_data\"" +
+			return internal.FriendlyError(errors.New("\"ipxe_script_url\" or \"user_data\"" +
 				" must be provided when \"custom_ipxe\" OS is selected."))
 		}
 
@@ -546,14 +547,14 @@ func resourceMetalDeviceCreate(ctx context.Context, d *schema.ResourceData, meta
 		// which case it's an error.
 		if createRequest.IPXEScriptURL != "" {
 			if matchIPXEScript.MatchString(createRequest.UserData) {
-				return friendlyError(errors.New("\"user_data\" should not be an iPXE " +
+				return internal.FriendlyError(errors.New("\"user_data\" should not be an iPXE " +
 					"script when \"ipxe_script_url\" is also provided."))
 			}
 		}
 	}
 
 	if createRequest.OS != "custom_ipxe" && createRequest.IPXEScriptURL != "" {
-		return friendlyError(errors.New("\"ipxe_script_url\" argument provided, but" +
+		return internal.FriendlyError(errors.New("\"ipxe_script_url\" argument provided, but" +
 			" OS is not \"custom_ipxe\". Please verify and fix device arguments."))
 	}
 
@@ -563,23 +564,23 @@ func resourceMetalDeviceCreate(ctx context.Context, d *schema.ResourceData, meta
 
 	projectKeys := d.Get("project_ssh_key_ids.#").(int)
 	if projectKeys > 0 {
-		createRequest.ProjectSSHKeys = convertStringArr(d.Get("project_ssh_key_ids").([]interface{}))
+		createRequest.ProjectSSHKeys = internal.ConvertStringArr(d.Get("project_ssh_key_ids").([]interface{}))
 	}
 
 	userKeys := d.Get("user_ssh_key_ids.#").(int)
 	if userKeys > 0 {
-		createRequest.UserSSHKeys = convertStringArr(d.Get("user_ssh_key_ids").([]interface{}))
+		createRequest.UserSSHKeys = internal.ConvertStringArr(d.Get("user_ssh_key_ids").([]interface{}))
 	}
 
 	tags := d.Get("tags.#").(int)
 	if tags > 0 {
-		createRequest.Tags = convertStringArr(d.Get("tags").([]interface{}))
+		createRequest.Tags = internal.ConvertStringArr(d.Get("tags").([]interface{}))
 	}
 
 	if attr, ok := d.GetOk("storage"); ok {
 		s, err := structure.NormalizeJsonString(attr.(string))
 		if err != nil {
-			return fmt.Errorf("storage param contains invalid JSON: %s", err)
+			return fmt.Errorf("storage param internal.Contains invalid JSON: %s", err)
 		}
 		var cpr packngo.CPR
 		err = json.Unmarshal([]byte(s), &cpr)
@@ -592,8 +593,8 @@ func resourceMetalDeviceCreate(ctx context.Context, d *schema.ResourceData, meta
 	start := time.Now()
 	newDevice, _, err := client.Devices.Create(createRequest)
 	if err != nil {
-		retErr := friendlyError(err)
-		if isNotFound(retErr) {
+		retErr := internal.FriendlyError(err)
+		if internal.IsNotFound(retErr) {
 			retErr = fmt.Errorf("%s, make sure project \"%s\" exists", retErr, createRequest.ProjectID)
 		}
 		return retErr
@@ -610,17 +611,17 @@ func resourceMetalDeviceCreate(ctx context.Context, d *schema.ResourceData, meta
 }
 
 func resourceMetalDeviceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalGoUserAgent(d)
-	client := meta.(*Config).metalgo
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metalgo
 
 	device, resp, err := client.DevicesApi.FindDeviceById(context.Background(), d.Id()).Include(deviceCommonIncludes).Execute()
 	if err != nil {
-		err = friendlyErrorForMetalGo(err, resp)
+		err = internal.FriendlyErrorForMetalGo(err, resp)
 
 		// If the device somehow already destroyed, mark as successfully gone.
 		// Checking d.IsNewResource prevents the creation of a resource from failing
 		// silently. Note d.IsNewResource is false in resource import operations.
-		if !d.IsNewResource() && (isNotFound(err) || isForbidden(err)) {
+		if !d.IsNewResource() && (internal.IsNotFound(err) || internal.IsForbidden(err)) {
 			log.Printf("[WARN] Device (%s) not found or in failed status, removing from state", d.Id())
 			d.SetId("")
 			return nil
@@ -663,7 +664,7 @@ func resourceMetalDeviceRead(ctx context.Context, d *schema.ResourceData, meta i
 		d.Set("deployed_hardware_reservation_id", device.HardwareReservation.GetId())
 	}
 
-	networkType, err := getNetworkType(device)
+	networkType, err := internal.GetNetworkType(device)
 	if err != nil {
 		return fmt.Errorf("[ERR] Error computing network type for device (%s): %s", d.Id(), err)
 	}
@@ -688,14 +689,14 @@ func resourceMetalDeviceRead(ctx context.Context, d *schema.ResourceData, meta i
 		keyIDs = append(keyIDs, path.Base(k.Href))
 	}
 	d.Set("ssh_key_ids", keyIDs)
-	networkInfo := getNetworkInfo(device.IpAddresses)
+	networkInfo := internal.GetNetworkInfo(device.IpAddresses)
 
 	sort.SliceStable(networkInfo.Networks, func(i, j int) bool {
 		famI := networkInfo.Networks[i]["family"].(int32)
 		famJ := networkInfo.Networks[j]["family"].(int32)
 		pubI := networkInfo.Networks[i]["public"].(bool)
 		pubJ := networkInfo.Networks[j]["public"].(bool)
-		return getNetworkRank(int(famI), pubI) < getNetworkRank(int(famJ), pubJ)
+		return internal.GetNetworkRank(int(famI), pubI) < internal.GetNetworkRank(int(famJ), pubJ)
 	})
 
 	d.Set("network", networkInfo.Networks)
@@ -703,7 +704,7 @@ func resourceMetalDeviceRead(ctx context.Context, d *schema.ResourceData, meta i
 	d.Set("access_private_ipv4", networkInfo.PrivateIPv4)
 	d.Set("access_public_ipv6", networkInfo.PublicIPv6)
 
-	ports := getPorts(device.NetworkPorts)
+	ports := internal.GetPorts(device.NetworkPorts)
 	d.Set("ports", ports)
 
 	if networkInfo.Host != "" {
@@ -717,8 +718,8 @@ func resourceMetalDeviceRead(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func resourceMetalDeviceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	if d.HasChange("locked") {
 		var action func(string) (*packngo.Response, error)
@@ -728,7 +729,7 @@ func resourceMetalDeviceUpdate(ctx context.Context, d *schema.ResourceData, meta
 			action = client.Devices.Unlock
 		}
 		if _, err := action(d.Id()); err != nil {
-			return friendlyError(err)
+			return internal.FriendlyError(err)
 		}
 	}
 	ur := packngo.DeviceUpdateRequest{}
@@ -760,7 +761,7 @@ func resourceMetalDeviceUpdate(ctx context.Context, d *schema.ResourceData, meta
 			}
 			ur.Tags = &sts
 		default:
-			return friendlyError(fmt.Errorf("garbage in tags: %s", ts))
+			return internal.FriendlyError(fmt.Errorf("garbage in tags: %s", ts))
 		}
 	}
 	if d.HasChange("ipxe_script_url") {
@@ -775,7 +776,7 @@ func resourceMetalDeviceUpdate(ctx context.Context, d *schema.ResourceData, meta
 	start := time.Now()
 	if !reflect.DeepEqual(ur, packngo.DeviceUpdateRequest{}) {
 		if _, _, err := client.Devices.Update(d.Id(), &ur); err != nil {
-			return friendlyError(err)
+			return internal.FriendlyError(err)
 		}
 	}
 
@@ -811,7 +812,7 @@ func doReinstall(ctx context.Context, client *packngo.Client, d *schema.Resource
 		}
 
 		if _, err := client.Devices.Reinstall(d.Id(), &reinstallOptions); err != nil {
-			return friendlyError(err)
+			return internal.FriendlyError(err)
 		}
 
 		updateTimeout := d.Timeout(schema.TimeoutUpdate) - 30*time.Second - time.Since(start)
@@ -824,8 +825,8 @@ func doReinstall(ctx context.Context, client *packngo.Client, d *schema.Resource
 }
 
 func resourceMetalDeviceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	fdvIf, fdvOk := d.GetOk("force_detach_volumes")
 	fdv := false
@@ -836,8 +837,8 @@ func resourceMetalDeviceDelete(ctx context.Context, d *schema.ResourceData, meta
 	start := time.Now()
 
 	resp, err := client.Devices.Delete(d.Id(), fdv)
-	if ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err) != nil {
-		return friendlyError(err)
+	if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err) != nil {
+		return internal.FriendlyError(err)
 	}
 
 	resId, resIdOk := d.GetOk("deployed_hardware_reservation_id")
@@ -847,7 +848,7 @@ func resourceMetalDeviceDelete(ctx context.Context, d *schema.ResourceData, meta
 			// avoid "context: deadline exceeded"
 			timeout := d.Timeout(schema.TimeoutDelete) - 30*time.Second - time.Since(start)
 
-			err := waitUntilReservationProvisionable(ctx, client, resId.(string), d.Id(), 10*time.Second, timeout, 3*time.Second)
+			err := internal.WaitUntilReservationProvisionable(ctx, client, resId.(string), d.Id(), 10*time.Second, timeout, 3*time.Second)
 			if err != nil {
 				return err
 			}
@@ -864,8 +865,8 @@ func waitForActiveDevice(ctx context.Context, d *schema.ResourceData, meta inter
 		Pending: pending,
 		Target:  targets,
 		Refresh: func() (interface{}, string, error) {
-			meta.(*Config).addModuleToMetalUserAgent(d)
-			client := meta.(*Config).metal
+			meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+			client := meta.(*internal.Config).Metal
 
 			device, _, err := client.Devices.Get(d.Id(), &packngo.GetOptions{Includes: []string{"project"}})
 			if err == nil {
@@ -880,11 +881,11 @@ func waitForActiveDevice(ctx context.Context, d *schema.ResourceData, meta inter
 	}
 
 	// Wait for the device so we can get the networking attributes that show up after a while.
-	state, err := waitForDeviceAttribute(ctx, d, stateConf)
+	state, err := internal.WaitForDeviceAttribute(ctx, d, stateConf)
 	if err != nil {
 		d.SetId("")
-		fErr := friendlyError(err)
-		if isForbidden(fErr) {
+		fErr := internal.FriendlyError(err)
+		if internal.IsForbidden(fErr) {
 			// If the device doesn't get to the active state, we can't recover it from here.
 
 			return errors.New("provisioning time limit exceeded; the Equinix Metal team will investigate")

@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 	"regexp"
@@ -111,11 +112,11 @@ func dataSourceNetworkDeviceSoftware() *schema.Resource {
 }
 
 func dataSourceNetworkDeviceSoftwareRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	conf := m.(*Config)
+	conf := m.(*internal.Config)
 	var diags diag.Diagnostics
 	typeCode := d.Get(networkDeviceSoftwareSchemaNames["DeviceTypeCode"]).(string)
-	pkgCodes := expandSetToStringList(d.Get(networkDeviceSoftwareSchemaNames["PackageCodes"]).(*schema.Set))
-	versions, err := conf.ne.GetDeviceSoftwareVersions(typeCode)
+	pkgCodes := internal.ExpandSetToStringList(d.Get(networkDeviceSoftwareSchemaNames["PackageCodes"]).(*schema.Set))
+	versions, err := conf.Ne.GetDeviceSoftwareVersions(typeCode)
 	if err != nil {
 		return diag.FromErr(err)
 	}

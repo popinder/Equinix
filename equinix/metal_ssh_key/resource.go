@@ -1,4 +1,4 @@
-package equinix
+package metal_ssh_key
 
 import (
 	"log"
@@ -7,9 +7,11 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/packethost/packngo"
+
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 )
 
-func metalSSHKeyCommonFields() map[string]*schema.Schema {
+func MetalSSHKeyCommonFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"name": {
 			Type:        schema.TypeString,
@@ -48,23 +50,23 @@ func metalSSHKeyCommonFields() map[string]*schema.Schema {
 	}
 }
 
-func resourceMetalSSHKey() *schema.Resource {
+func Resource() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceMetalSSHKeyCreate,
-		Read:   resourceMetalSSHKeyRead,
-		Update: resourceMetalSSHKeyUpdate,
-		Delete: resourceMetalSSHKeyDelete,
+		Create: ResourceMetalSSHKeyCreate,
+		Read:   ResourceMetalSSHKeyRead,
+		Update: ResourceMetalSSHKeyUpdate,
+		Delete: ResourceMetalSSHKeyDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: metalSSHKeyCommonFields(),
+		Schema: MetalSSHKeyCommonFields(),
 	}
 }
 
-func resourceMetalSSHKeyCreate(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+func ResourceMetalSSHKeyCreate(d *schema.ResourceData, meta interface{}) error {
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	createRequest := &packngo.SSHKeyCreateRequest{
 		Label: d.Get("name").(string),
@@ -78,25 +80,25 @@ func resourceMetalSSHKeyCreate(d *schema.ResourceData, meta interface{}) error {
 
 	key, _, err := client.SSHKeys.Create(createRequest)
 	if err != nil {
-		return friendlyError(err)
+		return internal.FriendlyError(err)
 	}
 
 	d.SetId(key.ID)
 
-	return resourceMetalSSHKeyRead(d, meta)
+	return ResourceMetalSSHKeyRead(d, meta)
 }
 
-func resourceMetalSSHKeyRead(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+func ResourceMetalSSHKeyRead(d *schema.ResourceData, meta interface{}) error {
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	key, _, err := client.SSHKeys.Get(d.Id(), nil)
 	if err != nil {
-		err = friendlyError(err)
+		err = internal.FriendlyError(err)
 
 		// If the key is somehow already destroyed, mark as
 		// succesfully gone
-		if isNotFound(err) {
+		if internal.IsNotFound(err) {
 			log.Printf("[WARN] SSHKey (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
@@ -122,9 +124,9 @@ func resourceMetalSSHKeyRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceMetalSSHKeyUpdate(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+func ResourceMetalSSHKeyUpdate(d *schema.ResourceData, meta interface{}) error {
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	updateRequest := &packngo.SSHKeyUpdateRequest{}
 
@@ -140,19 +142,19 @@ func resourceMetalSSHKeyUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	_, _, err := client.SSHKeys.Update(d.Id(), updateRequest)
 	if err != nil {
-		return friendlyError(err)
+		return internal.FriendlyError(err)
 	}
 
-	return resourceMetalSSHKeyRead(d, meta)
+	return ResourceMetalSSHKeyRead(d, meta)
 }
 
-func resourceMetalSSHKeyDelete(d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+func ResourceMetalSSHKeyDelete(d *schema.ResourceData, meta interface{}) error {
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	resp, err := client.SSHKeys.Delete(d.Id())
-	if ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err) != nil {
-		return friendlyError(err)
+	if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err) != nil {
+		return internal.FriendlyError(err)
 	}
 
 	d.SetId("")

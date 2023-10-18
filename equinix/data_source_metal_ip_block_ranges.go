@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -27,7 +28,7 @@ func dataSourceMetalIPBlockRanges() *schema.Resource {
 				Type:        schema.TypeString,
 				Description: "Metro code filtering the IP blocks. Global IPv4 blocks will be listed anyway. If you omit this and facility, all the block from the project will be listed",
 				Optional:    true,
-				StateFunc:   toLower,
+				StateFunc:   internal.ToLower,
 			},
 			"public_ipv4": {
 				Type:        schema.TypeList,
@@ -88,7 +89,7 @@ func metroOffacilityMatch(ref string, facility *packngo.Facility) bool {
 }
 
 func dataSourceMetalIPBlockRangesRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config).metal
+	client := meta.(*internal.Config).Metal
 	projectID := d.Get("project_id").(string)
 	ips, _, err := client.ProjectIPs.List(projectID, nil)
 	if err != nil {

@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 	"log"
@@ -139,8 +140,8 @@ func resourceMetalVirtualCircuit() *schema.Resource {
 }
 
 func resourceMetalVirtualCircuitCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 	vncr := packngo.VCCreateRequest{
 		VirtualNetworkID: d.Get("vlan_id").(string),
 		Name:             d.Get("name").(string),
@@ -160,7 +161,7 @@ func resourceMetalVirtualCircuitCreate(ctx context.Context, d *schema.ResourceDa
 
 	tags := d.Get("tags.#").(int)
 	if tags > 0 {
-		vncr.Tags = convertStringArr(d.Get("tags").([]interface{}))
+		vncr.Tags = internal.ConvertStringArr(d.Get("tags").([]interface{}))
 	}
 
 	if nniVlan, ok := d.GetOk("nni_vlan"); ok {
@@ -199,8 +200,8 @@ func resourceMetalVirtualCircuitCreate(ctx context.Context, d *schema.ResourceDa
 }
 
 func resourceMetalVirtualCircuitRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 	vcId := d.Id()
 
 	vc, _, err := client.VirtualCircuits.Get(
@@ -280,8 +281,8 @@ func getVCStateWaiter(client *packngo.Client, id string, timeout time.Duration, 
 }
 
 func resourceMetalVirtualCircuitUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	ur := packngo.VCUpdateRequest{}
 	if d.HasChange("vlan_id") {
@@ -315,25 +316,25 @@ func resourceMetalVirtualCircuitUpdate(ctx context.Context, d *schema.ResourceDa
 			}
 			ur.Tags = &sts
 		default:
-			return friendlyError(fmt.Errorf("garbage in tags: %s", ts))
+			return internal.FriendlyError(fmt.Errorf("garbage in tags: %s", ts))
 		}
 	}
 
 	if !reflect.DeepEqual(ur, packngo.VCUpdateRequest{}) {
 		if _, _, err := client.VirtualCircuits.Update(d.Id(), &ur, nil); err != nil {
-			return friendlyError(err)
+			return internal.FriendlyError(err)
 		}
 	}
 	return resourceMetalVirtualCircuitRead(ctx, d, meta)
 }
 
 func resourceMetalVirtualCircuitDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	resp, err := client.VirtualCircuits.Delete(d.Id())
-	if ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err) != nil {
-		return friendlyError(err)
+	if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err) != nil {
+		return internal.FriendlyError(err)
 	}
 
 	deleteWaiter := getVCStateWaiter(
@@ -345,7 +346,7 @@ func resourceMetalVirtualCircuitDelete(ctx context.Context, d *schema.ResourceDa
 	)
 
 	_, err = deleteWaiter.WaitForStateContext(ctx)
-	if ignoreResponseErrors(httpForbidden, httpNotFound)(nil, err) != nil {
+	if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(nil, err) != nil {
 		return fmt.Errorf("Error deleting virtual circuit %s: %s", d.Id(), err)
 	}
 	d.SetId("")

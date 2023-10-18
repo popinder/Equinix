@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 	"net/http"
@@ -121,8 +122,8 @@ func createNetworkBGPResourceSchema() map[string]*schema.Schema {
 }
 
 func resourceNetworkBGPCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	bgp := createNetworkBGPConfiguration(d)
 	existingBGP, err := client.GetBGPConfigurationForConnection(ne.StringValue(bgp.ConnectionUUID))
@@ -151,8 +152,8 @@ func resourceNetworkBGPCreate(ctx context.Context, d *schema.ResourceData, m int
 }
 
 func resourceNetworkBGPRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	bgp, err := client.GetBGPConfiguration(d.Id())
 	if err != nil {
@@ -165,8 +166,8 @@ func resourceNetworkBGPRead(ctx context.Context, d *schema.ResourceData, m inter
 }
 
 func resourceNetworkBGPUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	bgpConfig := createNetworkBGPConfiguration(d)
 	if err := createNetworkBGPUpdateRequest(client.NewBGPConfigurationUpdateRequest, &bgpConfig).Execute(); err != nil {

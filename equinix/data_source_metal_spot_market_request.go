@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"sort"
 	"strings"
@@ -74,13 +75,13 @@ func dataSourceMetalSpotMarketRequest() *schema.Resource {
 }
 
 func dataSourceMetalSpotMarketRequestRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config).metal
+	client := meta.(*internal.Config).Metal
 	id := d.Get("request_id").(string)
 
 	smr, _, err := client.SpotMarketRequests.Get(id, &packngo.GetOptions{Includes: []string{"project", "devices", "facilities", "metro"}})
 	if err != nil {
-		err = friendlyError(err)
-		if isNotFound(err) {
+		err = internal.FriendlyError(err)
+		if internal.IsNotFound(err) {
 			d.SetId("")
 			return nil
 		}

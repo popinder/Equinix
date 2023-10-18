@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"fmt"
 	"strings"
 
@@ -42,7 +43,7 @@ func dataSourceOperatingSystem() *schema.Resource {
 }
 
 func dataSourceMetalOperatingSystemRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config).metal
+	client := meta.(*internal.Config).Metal
 
 	name, nameOK := d.GetOk("name")
 	distro, distroOK := d.GetOk("distro")

@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 	"log"
@@ -658,8 +659,8 @@ func createECXL2ConnectionActionsRequiredDataSchema() map[string]*schema.Schema 
 }
 
 func resourceECXL2ConnectionCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ecx
-	m.(*Config).addModuleToECXUserAgent(&client, d)
+	client := m.(*internal.Config).Ecx
+	m.(*internal.Config).AddModuleToECXUserAgent(&client, d)
 
 	var diags diag.Diagnostics
 	primary, secondary := createECXL2Connections(d)
@@ -696,8 +697,8 @@ func resourceECXL2ConnectionCreate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceECXL2ConnectionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ecx
-	m.(*Config).addModuleToECXUserAgent(&client, d)
+	client := m.(*internal.Config).Ecx
+	m.(*internal.Config).AddModuleToECXUserAgent(&client, d)
 	var diags diag.Diagnostics
 	var err error
 	var primary *ecx.L2Connection
@@ -741,8 +742,8 @@ func resourceECXL2ConnectionRead(ctx context.Context, d *schema.ResourceData, m 
 }
 
 func resourceECXL2ConnectionUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ecx
-	m.(*Config).addModuleToECXUserAgent(&client, d)
+	client := m.(*internal.Config).Ecx
+	m.(*internal.Config).AddModuleToECXUserAgent(&client, d)
 	var diags diag.Diagnostics
 	supportedChanges := []string{
 		ecxL2ConnectionSchemaNames["Name"],
@@ -766,8 +767,8 @@ func resourceECXL2ConnectionUpdate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceECXL2ConnectionDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ecx
-	m.(*Config).addModuleToECXUserAgent(&client, d)
+	client := m.(*internal.Config).Ecx
+	m.(*internal.Config).AddModuleToECXUserAgent(&client, d)
 
 	var diags diag.Diagnostics
 	if err := client.DeleteL2Connection(d.Id()); err != nil {
@@ -822,7 +823,7 @@ func createECXL2Connections(d *schema.ResourceData) (*ecx.L2Connection, *ecx.L2C
 		primary.SpeedUnit = ecx.String(v.(string))
 	}
 	if v, ok := d.GetOk(ecxL2ConnectionSchemaNames["Notifications"]); ok {
-		primary.Notifications = expandSetToStringList(v.(*schema.Set))
+		primary.Notifications = internal.ExpandSetToStringList(v.(*schema.Set))
 	}
 	if v, ok := d.GetOk(ecxL2ConnectionSchemaNames["PurchaseOrderNumber"]); ok {
 		primary.PurchaseOrderNumber = ecx.String(v.(string))

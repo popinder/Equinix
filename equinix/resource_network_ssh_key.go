@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 	"net/http"
@@ -76,8 +77,8 @@ func createNetworkSSHKeyResourceSchema() map[string]*schema.Schema {
 }
 
 func resourceNetworkSSHKeyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	key := createNetworkSSHKey(d)
 	uuid, err := client.CreateSSHPublicKey(key)
@@ -90,8 +91,8 @@ func resourceNetworkSSHKeyCreate(ctx context.Context, d *schema.ResourceData, m 
 }
 
 func resourceNetworkSSHKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	key, err := client.GetSSHPublicKey(d.Id())
 	if err != nil {
@@ -110,8 +111,8 @@ func resourceNetworkSSHKeyRead(ctx context.Context, d *schema.ResourceData, m in
 }
 
 func resourceNetworkSSHKeyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*Config).ne
-	m.(*Config).addModuleToNEUserAgent(&client, d)
+	client := m.(*internal.Config).Ne
+	m.(*internal.Config).AddModuleToNEUserAgent(&client, d)
 	var diags diag.Diagnostics
 	if err := client.DeleteSSHPublicKey(d.Id()); err != nil {
 		if restErr, ok := err.(rest.Error); ok {

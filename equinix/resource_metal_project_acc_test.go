@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"fmt"
 	"log"
@@ -135,8 +136,8 @@ func TestAccMetalProject_errorHandling(t *testing.T) {
 	}
 	mockEquinix := Provider()
 	mockEquinix.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-		config := Config{
-			metal: &packngo.Client{Projects: mockMetalProjectService},
+		config := internal.Config{
+			Metal: &packngo.Client{Projects: mockMetalProjectService},
 		}
 		return &config, nil
 	}
@@ -167,8 +168,8 @@ func TestAccMetalProject_apiErrorHandling(t *testing.T) {
 	}
 	mockEquinix := Provider()
 	mockEquinix.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-		config := Config{
-			metal: &packngo.Client{Projects: mockMetalProjectService},
+		config := internal.Config{
+			Metal: &packngo.Client{Projects: mockMetalProjectService},
 		}
 		return &config, nil
 	}
@@ -346,7 +347,7 @@ func TestAccMetalProject_BGPUpdate(t *testing.T) {
 }
 
 func testAccMetalProjectCheckDestroyed(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config).metal
+	client := testAccProvider.Meta().(*internal.Config).Metal
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "equinix_metal_project" {
@@ -370,7 +371,7 @@ func testAccMetalProjectExists(n string, project *packngo.Project) resource.Test
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		client := testAccProvider.Meta().(*Config).metal
+		client := testAccProvider.Meta().(*internal.Config).Metal
 
 		foundProject, _, err := client.Projects.Get(rs.Primary.ID, nil)
 		if err != nil {

@@ -1,6 +1,7 @@
 package equinix
 
 import (
+	"github.com/equinix/terraform-provider-equinix/equinix/internal"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -129,7 +130,7 @@ func resourceMetalReservedIPBlock() *schema.Resource {
 			}
 			return fromState == fromHCL
 		},
-		StateFunc: toLower,
+		StateFunc: internal.ToLower,
 	}
 	reservedBlockSchema["description"] = &schema.Schema{
 		Type:        schema.TypeString,
@@ -232,8 +233,8 @@ func resourceMetalReservedIPBlock() *schema.Resource {
 }
 
 func resourceMetalReservedIPBlockCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	quantity := d.Get("quantity").(int)
 	typ := d.Get("type").(string)
@@ -315,8 +316,8 @@ func resourceMetalReservedIPBlockCreate(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceMetalReservedIPBlockUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 	id := d.Id()
 	req := &packngo.IPAddressUpdateRequest{}
 	if d.HasChange("tags") {
@@ -457,8 +458,8 @@ func loadBlock(d *schema.ResourceData, reservedBlock *packngo.IPAddressReservati
 }
 
 func resourceMetalReservedIPBlockRead(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	id := d.Id()
 	getOpts := &packngo.GetOptions{Includes: []string{"facility", "metro", "project", "vrf"}}
@@ -466,8 +467,8 @@ func resourceMetalReservedIPBlockRead(ctx context.Context, d *schema.ResourceDat
 
 	reservedBlock, _, err := client.ProjectIPs.Get(id, getOpts)
 	if err != nil {
-		err = friendlyError(err)
-		if isNotFound(err) {
+		err = internal.FriendlyError(err)
+		if internal.IsNotFound(err) {
 			log.Printf("[WARN] Reserved IP Block (%s) not found, removing from state", d.Id())
 			d.SetId("")
 			return nil
@@ -488,14 +489,14 @@ func resourceMetalReservedIPBlockRead(ctx context.Context, d *schema.ResourceDat
 }
 
 func resourceMetalReservedIPBlockDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
-	meta.(*Config).addModuleToMetalUserAgent(d)
-	client := meta.(*Config).metal
+	meta.(*internal.Config).AddModuleToMetalUserAgent(d)
+	client := meta.(*internal.Config).Metal
 
 	id := d.Id()
 
 	resp, err := client.ProjectIPs.Remove(id)
 
-	if ignoreResponseErrors(httpForbidden, httpNotFound)(resp, err) != nil {
+	if internal.IgnoreResponseErrors(internal.HttpForbidden, internal.HttpNotFound)(resp, err) != nil {
 		return fmt.Errorf("error deleting IP reservation block %s: %s", id, err)
 	}
 
