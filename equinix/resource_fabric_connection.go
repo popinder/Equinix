@@ -104,9 +104,9 @@ func resourceFabricConnectionCreate(ctx context.Context, d *schema.ResourceData,
 		Project:        &project,
 	}
 
-	conn, _, err := client.ConnectionsApi.CreateConnection(ctx, createRequest)
+	conn, httpResponse, err := client.ConnectionsApi.CreateConnection(ctx, createRequest)
 	if err != nil {
-		return diag.FromErr(err)
+		return networkErrorOutput(err, httpResponse)
 	}
 	d.SetId(conn.Uuid)
 
@@ -124,9 +124,9 @@ func resourceFabricConnectionCreate(ctx context.Context, d *schema.ResourceData,
 			},
 		}
 
-		_, _, patchErr := client.ConnectionsApi.UpdateConnectionByUuid(ctx, patchChangeOperation, conn.Uuid)
+		_, patchHttpResponse, patchErr := client.ConnectionsApi.UpdateConnectionByUuid(ctx, patchChangeOperation, conn.Uuid)
 		if patchErr != nil {
-			return diag.FromErr(err)
+			return networkErrorOutput(err, patchHttpResponse)
 		}
 
 		if _, statusChangeErr := waitForConnectionProviderStatusChange(d.Id(), meta, ctx); err != nil {
@@ -156,13 +156,9 @@ func additionalInfoContainsAWSSecrets(info []interface{}) ([]interface{}, bool) 
 func resourceFabricConnectionRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*Config).fabricClient
 	ctx = context.WithValue(ctx, v4.ContextAccessToken, meta.(*Config).FabricAuthToken)
-	conn, _, err := client.ConnectionsApi.GetConnectionByUuid(ctx, d.Id(), nil)
+	conn, httpResponse, err := client.ConnectionsApi.GetConnectionByUuid(ctx, d.Id(), nil)
 	if err != nil {
-		log.Printf("[WARN] Connection %s not found , error %s", d.Id(), err)
-		if !strings.Contains(err.Error(), "500") {
-			d.SetId("")
-		}
-		return diag.FromErr(err)
+		return networkErrorOutput(err, httpResponse)
 	}
 	d.SetId(conn.Uuid)
 	return setFabricMap(d, conn)
@@ -218,9 +214,9 @@ func resourceFabricConnectionUpdate(ctx context.Context, d *schema.ResourceData,
 	updatedConn := dbConn
 
 	for _, update := range updateRequests {
-		_, _, err := client.ConnectionsApi.UpdateConnectionByUuid(ctx, update, d.Id())
+		_, httpResponse, err := client.ConnectionsApi.UpdateConnectionByUuid(ctx, update, d.Id())
 		if err != nil {
-			diags = append(diags, diag.Diagnostic{Severity: 2, Summary: fmt.Sprintf("connectionn property update request error: %v [update payload: %v] (other updates will be successful if the payload is not shown)", err, update)})
+			diags = append(diags, networkErrorOutput(fmt.Errorf("connectionn property update request error: %v [update payload: %v] (other updates will be successful if the payload is not shown)", err, update), httpResponse)...)
 			continue
 		}
 
@@ -236,9 +232,6 @@ func resourceFabricConnectionUpdate(ctx context.Context, d *schema.ResourceData,
 		conn, err := waitFunction(d.Id(), meta, ctx)
 
 		if err != nil {
-			if !strings.Contains(err.Error(), "500") {
-				d.SetId("")
-			}
 			diags = append(diags, diag.Diagnostic{Severity: 2, Summary: fmt.Sprintf("connection property update completion timeout error: %v [update payload: %v] (other updates will be successful if the payload is not shown)", err, update)})
 		} else {
 			updatedConn = conn
@@ -374,7 +367,7 @@ func resourceFabricConnectionDelete(ctx context.Context, d *schema.ResourceData,
 	diags := diag.Diagnostics{}
 	client := meta.(*Config).fabricClient
 	ctx = context.WithValue(ctx, v4.ContextAccessToken, meta.(*Config).FabricAuthToken)
-	_, _, err := client.ConnectionsApi.DeleteConnectionByUuid(ctx, d.Id())
+	_, httpResponse, err := client.ConnectionsApi.DeleteConnectionByUuid(ctx, d.Id())
 	if err != nil {
 		errors, ok := err.(v4.GenericSwaggerError).Model().([]v4.ModelError)
 		if ok {
@@ -383,7 +376,7 @@ func resourceFabricConnectionDelete(ctx context.Context, d *schema.ResourceData,
 				return diags
 			}
 		}
-		return diag.FromErr(fmt.Errorf("error response for the connection delete: %v", err))
+		return networkErrorOutput(fmt.Errorf("error response for the connection delete: %v", err), httpResponse)
 	}
 
 	err = waitUntilConnectionDeprovisioned(d.Id(), meta, ctx)

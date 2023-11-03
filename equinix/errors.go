@@ -2,11 +2,13 @@ package equinix
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/packethost/packngo"
@@ -49,6 +51,17 @@ func convertToFriendlyError(errors Errors, resp *http.Response) error {
 		}
 	}
 	return er
+}
+
+func networkErrorOutput(err error, resp *http.Response) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	responseBody, readErr := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if readErr != nil {
+		diags = append(diags, diag.Diagnostic{Severity: 2, Summary: fmt.Sprintf("error parsing network request body: %s", readErr)})
+	}
+	diags = append(diags, diag.Diagnostic{Severity: 2, Summary: fmt.Sprintf("%s; \n %s", err, responseBody)})
+	return diags
 }
 
 func isForbidden(err error) bool {
