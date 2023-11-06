@@ -1,6 +1,8 @@
 module github.com/equinix/terraform-provider-equinix
 
-go 1.20
+go 1.21
+
+toolchain go1.21.3
 
 require (
 	github.com/antihax/optional v1.0.0
@@ -11,7 +13,7 @@ require (
 	github.com/equinix/oauth2-go v1.0.0
 	github.com/equinix/rest-go v1.3.0
 	github.com/google/uuid v1.3.0
-	github.com/gruntwork-io/terratest v0.43.0
+	github.com/gruntwork-io/terratest v0.46.6
 	github.com/hashicorp/go-cty v1.4.1-0.20200723130312-85980079f637
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-retryablehttp v0.7.4
